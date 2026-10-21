@@ -268,6 +268,22 @@ python -m volunteer.cli --json hours S001
 
 危险操作默认要求确认；非交互环境必须显式加 `--yes`。
 
+### 容器化部署（可选）
+
+仓库提供 [Dockerfile](Dockerfile) 与 [docker-compose.yml](docker-compose.yml)，镜像内会重建演示数据，`workspace` 挂载到宿主机。
+
+```powershell
+# 需要先启动 Docker Desktop
+docker compose up --build
+# 或
+docker build -t volunteer-agent .
+docker run --rm -p 8501:8501 volunteer-agent
+```
+
+打开 `http://localhost:8501`。在线模式仍需通过 `--env-file .env`（compose 已自动读取）提供百炼 Key；没有 Key 时用界面左侧的离线演示。
+
+> 该路径在开发机上未完成构建验证（本机 Docker 守护进程未启动），现场演示请以本地 `streamlit run web.py` 为准。
+
 ## 11. 配置
 
 复制 `.env.example` 为 `.env`，填入自己的百炼 Key。`.env` 已被 `.gitignore` 排除，**不要提交**。
@@ -292,8 +308,8 @@ python -m volunteer.cli --json hours S001
 | 演示数据完整性 | `python -m scripts.check_data` | 11 项全部 PASS |
 | MCP stdio 联调 | `python -m scripts.mcp_smoke` | 通过（工具清单、调用结果、只读边界） |
 | 命令行业务闭环 | `python -m volunteer.cli demo` | 六步全部成功 |
-| Agent 构造自检 | `python -m scripts.check_agent` | 待真实 Key 联调后记录 |
-| 界面冒烟 | `python -m scripts.smoke_ui` | 待真实 Key 联调后记录 |
+| Agent 构造自检 | `python -m scripts.check_agent` | 14 项全部 PASS |
+| 界面冒烟 | `python -m scripts.smoke_ui` | 6 项全部 PASS |
 
 用例细节见 [docs/test-plan.md](docs/test-plan.md)。TC-19～TC-24（Agent 层）需要在真实 Key 下执行并回填结果。
 
@@ -312,6 +328,8 @@ python -m volunteer.cli --json hours S001
 | 离线演示模式 | 已完成 | 林至言 |
 | 周报 Markdown 与 CSV | 已完成 | 共同 |
 | HTML 幻灯片 | 初稿完成，待补真实截图 | 共同 |
+| 演示脚本与录屏分镜 | 已完成 | 朱煜杰 |
+| 容器化部署（可选） | 文件已提供，待本机验证构建 | 朱煜杰 |
 | Agent 联调记录（TC-19～24） | 待真实 Key | 共同 |
 | 备份录屏（≤3 分钟） | 未开始 | 朱煜杰 |
 
@@ -358,4 +376,5 @@ python -m volunteer.cli --json hours S001
 |---|---|
 | [docs/team-plan.md](docs/team-plan.md) | 角色、接口契约、WBS、里程碑、汇报与 Q&A 分工 |
 | [docs/test-plan.md](docs/test-plan.md) | 18 条工具/MCP 用例、6 条 Agent 联调用例、演示前检查清单 |
+| [docs/demo-script.md](docs/demo-script.md) | 现场演示流程、3 分钟录屏分镜、故障兜底 |
 | [presentation/presentation.html](presentation/presentation.html) | 11 页汇报幻灯片（含演讲者备注） |

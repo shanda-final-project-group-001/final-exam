@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      context: .
+    image: volunteer-agent:latest
+    container_name: volunteer-agent
+    ports:
+      - "8501:8501"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      VOLUNTEER_DB: /app/data/volunteer_demo.db
+    volumes:
+      - ./workspace:/app/workspace
+    restart: unless-stopped
