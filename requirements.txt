@@ -1,0 +1,8 @@
+# 数据与工具层依赖（朱煜杰负责部分）
+mcp>=2.0.0
+python-dotenv>=1.0.0
+
+# 以下由林至言在 Agent / UI 阶段补充：
+# langchain-openai
+# deepagents
+# streamlit
