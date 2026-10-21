@@ -39,9 +39,7 @@ final-exam/
 │     └─ volunteer-weekly-report/{SKILL.md,template.md}
 ├─ scripts/
 │  ├─ smoke_tools.py      # 工具冒烟脚本
-│  ├─ check_data.py       # 演示数据完整性检查
-│  ├─ check_agent.py      # Agent 层自检（不需要 Key）
-│  └─ smoke_ui.py         # Streamlit 页面冒烟（AppTest，不需要浏览器）
+│  └─ check_data.py       # 演示数据完整性检查
 ├─ tests/test_tools.py    # 工具层单元测试
 ├─ workspace/             # 运行产出（不提交）
 ├─ web.py                 # Streamlit 界面入口
@@ -83,7 +81,7 @@ python -m scripts.check_data
 # 7. 命令行走完整业务闭环（临时数据库，不污染演示数据）
 python -m volunteer.cli demo
 
-# 8. 工具层 + Agent 层自检（第 9、10 条不需要 Key）
+# 7. 运行工具层测试
 python -m unittest discover -s tests -v
 python -m scripts.check_agent
 python -m scripts.smoke_ui
