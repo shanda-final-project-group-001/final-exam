@@ -57,6 +57,15 @@ python -m scripts.check_data
 | TC-23 | 模型不调用工具 | 观察执行面板 | 若模型只回复文字而无工具调用，视为失败并记录提示词问题 |
 | TC-24 | 错误透传 | “帮我报名 A999” | 模型转述 `NOT_FOUND` 的中文提示，不编造活动 |
 
+## 4.1 Agent 层自检（不需要 Key，可随时执行）
+
+| ID | 命令 | 预期结果 |
+|---|---|---|
+| AC-01 | `python -m scripts.check_agent` | 14 项全 PASS：会话读写、8 个工具、MCP 定义一致、未确认不写库、write_file 越界拦截、离线周报 |
+| AC-02 | `python -m scripts.smoke_ui` | 6 项全 PASS：首屏渲染、切离线、示例话术出结果、执行面板有内容、新建会话 |
+| AC-03 | `python -m volunteer.agent --offline` | 打印 6 步工具调用，`workspace/reports/` 出现当天周报 |
+| AC-04 | `python -m volunteer.agent --tools` | 列出 8 个工具，前三个与 `python -m volunteer.mcp_server` 一致 |
+
 ## 5. 演示前检查清单
 
 - [ ] `python -m data.seed` 可重复执行，数据恢复到基线
@@ -71,3 +80,5 @@ python -m scripts.check_data
 | 日期 | 执行人 | 通过 / 总数 | 失败项 | 处理 |
 |---|---|---|---|---|
 | 2026-10-21 | 朱煜杰 | 单元测试 20/20；CLI 抽查 TC-01/03/04/07/10/11/12 通过 | — | 通过 |
+| 2026-10-21 | 林至言 | Agent 自检 AC-01 14/14、UI 冒烟 AC-02 6/6、AC-03/04 通过；单元测试 20/20 | — | 通过（无需 Key） |
+| 待补 | 林至言 | TC-19 ~ TC-24 | — | 需真实百炼 Key 后执行并回填现象 |

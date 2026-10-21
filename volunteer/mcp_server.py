@@ -70,5 +70,24 @@ def main() -> None:
     mcp.run()
 
 
+def tool_specs() -> list[dict]:
+    """列出服务器注册的工具定义（名称、参数 schema、描述、底层函数）。
+
+    供 Agent 层“按 MCP 的定义挂载工具”，也让测试能直接核对服务器暴露了哪些能力。
+    只读工具注册在 `mcp` 上，这里是唯一真相来源，避免 Agent 与 MCP 两处各写一份描述。
+    """
+    manager = getattr(mcp, "_tool_manager", None)
+    tools = getattr(manager, "_tools", {}) if manager else {}
+    return [
+        {
+            "name": item.name,
+            "description": item.description or "",
+            "parameters": item.parameters,
+            "fn": item.fn,
+        }
+        for item in tools.values()
+    ]
+
+
 if __name__ == "__main__":
     main()
