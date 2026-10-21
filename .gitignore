@@ -31,3 +31,6 @@ Thumbs.db
 
 # Streamlit 本地密钥
 .streamlit/secrets.toml
+
+# AI 工具本地记录
+.workbuddy/
