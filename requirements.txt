@@ -2,7 +2,16 @@
 mcp>=2.0.0
 python-dotenv>=1.0.0
 
-# 以下由林至言在 Agent / UI 阶段补充：
-# langchain-openai
-# deepagents
-# streamlit
+# Agent 与界面（林至言补充）
+langchain-core>=1.0
+langchain-openai>=1.0
+langchain>=1.0
+langgraph>=1.0
+langgraph-checkpoint-sqlite>=3.0
+deepagents>=0.7
+streamlit>=1.40
+
+# 说明：
+# - deepagents 自带 langgraph，这里仍单独列出版本线，是为了锁定“检查点能落 SQLite”；
+# - langchain-openai 用来接百炼的 OpenAI 兼容接口，换模型只改 .env；
+# - 测试用标准库 unittest，不额外引入 pytest。
