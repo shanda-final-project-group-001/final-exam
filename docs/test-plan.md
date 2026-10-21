@@ -81,6 +81,22 @@ python -m scripts.check_data
 
 | 日期 | 执行人 | 通过 / 总数 | 失败项 | 处理 |
 |---|---|---|---|---|
-| 2026-10-21 | 朱煜杰 | 单元测试 28/28；CLI 抽查 TC-01/03/04/07/10/11/12 通过；MCP 联调 TC-16～18 通过 | — | 通过 |
+| 2026-10-21 | 朱煜杰 | 单元测试 30/30；CLI 抽查 TC-01/03/04/07/10/11/12 通过；MCP 联调 TC-16～18 通过 | — | 通过 |
 | 2026-10-21 | 朱煜杰 | Agent 自检 AC-01 14/14、AC-02 6/6、AC-03、AC-04 通过 | — | 通过 |
-| 待补 | 林至言 | TC-19～TC-24 需真实 Key | — | 未执行 |
+| 2026-10-21 | 朱煜杰 | TC-19～TC-24 全部通过（火山方舟 deepseek-v4.1-flash） | — | 通过 |
+
+### TC-19～TC-24 实测记录
+
+| ID | 实际工具链 | 结果 |
+|---|---|---|
+| TC-19 | `search_activities(weekday=周三, limit=20)` → 返回 6 条开放活动，按匹配规则排序 | 通过 |
+| TC-20 | `get_activity_detail(A004)` → `check_schedule_conflict(A004)`，指出与“数据结构”冲突，未调用报名 | 通过 |
+| TC-21 | 两轮对话后 `enroll_activity` 暂停，`pending` 返回报名详情；`resume(True)` 后名额 10→9 | 通过 |
+| TC-22 | `get_volunteer_hours` → `export_hours_csv` → `write_file` → `task(report-critic)`，产出周报与 CSV | 通过 |
+| TC-23 | 每轮均出现工具调用，执行面板有完整轨迹，无“只回复不调工具”现象 | 通过 |
+| TC-24 | `get_activity_detail(A999)` 返回 `NOT_FOUND`，模型如实转述且未编造活动 | 通过 |
+
+联调中发现并修复两处问题：
+
+1. 并行工具调用的结果按返回顺序错配（执行面板会显示错误的参数与结果）。已改为按 `call_id` 配对，并补充回归测试 `tests/test_agent_steps.py`。
+2. `.env` 中 `WORKSPACE_DIR=workspace` 是相对路径，导致 `check_agent` 在 `relative_to` 处报错。已在 `config.py` 统一按仓库根目录解析相对路径。

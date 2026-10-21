@@ -188,7 +188,7 @@
       </div>
       <div class="tier"><div class="tname">模型层</div>
         <div class="cells">
-          <div class="cell"><div class="ic">🤖</div><h4>阿里百炼 qwen</h4><p>qwen3.7-plus 主模型</p></div>
+          <div class="cell"><div class="ic">🤖</div><h4>OpenAI 兼容模型</h4><p>百炼 Qwen / 火山方舟 DeepSeek</p></div>
           <div class="cell"><div class="ic">🔌</div><h4>OpenAI 兼容接口</h4><p>ChatOpenAI + base_url</p></div>
           <div class="cell"><div class="ic">🔐</div><h4>密钥管理</h4><p>.env 不入库</p></div>
         </div>
@@ -210,7 +210,7 @@
       </div>
     </div>
     <div class="deck-footer"><span class="dim2">志愿星 · 期末项目</span><span class="slide-number" data-current="5" data-total="11"></span></div>
-    <div class="notes">40 秒：从下往上看也可以。模型层用百炼的 OpenAI 兼容接口；智能体层是 Deep Agents，负责规划和调度；能力层是三个抓手——自定义工具、MCP 服务器、Skills；最上面是 Streamlit 界面，最下面是 SQLite 和 workspace 产出。老师问“工具和 MCP 有什么区别”，就指这一页。</div>
+    <div class="notes">40 秒：从下往上看也可以。模型层用 OpenAI 兼容接口（百炼 Qwen 或火山方舟 DeepSeek，按 .env 切换）；智能体层是 Deep Agents，负责规划和调度；能力层是三个抓手——自定义工具、MCP 服务器、Skills；最上面是 Streamlit 界面，最下面是 SQLite 和 workspace 产出。老师问“工具和 MCP 有什么区别”，就指这一页。</div>
   </section>
 
   <!-- 6. 智能体与工具设计 -->
@@ -272,7 +272,7 @@
         <tbody>
           <tr><td>demo_1</td><td>Streamlit 界面、本地知识库</td><td>对话界面与执行过程面板；制度问答可选接 RAG</td></tr>
           <tr><td>demo_2</td><td>OpenAI 兼容、Tool Calling、流式输出</td><td>多步工具调用，过程逐条展示</td></tr>
-          <tr><td>demo_3 / demo_4</td><td>阿里百炼模型、密钥与环境变量</td><td>qwen 模型接入，Key 只放 .env</td></tr>
+          <tr><td>demo_3 / demo_4</td><td>云端模型、密钥与环境变量</td><td>OpenAI 兼容接入，Key 只放 .env</td></tr>
           <tr><td>demo_5</td><td>Deep Agents、Skills、MCP、记忆、SQLite</td><td>智能体骨架与参考实现</td></tr>
         </tbody>
       </table>

@@ -7,7 +7,7 @@
 
 | 关注点 | 实现位置 |
 |---|---|
-| 模型接入（百炼 OpenAI 兼容） | `build_model()` |
+| 模型接入（OpenAI 兼容） | `build_model()` |
 | 多步规划（write_todos） | Deep Agents 内置的 todo 中间件 |
 | 能力来源 | 本地工具（写/导出）+ MCP 服务器（只读查询） |
 | 流程知识 | `skills/` 下两个 Skill，按需由 `read_file` 读取 |
@@ -79,16 +79,16 @@ def config_problem() -> str | None:
     """返回人类可读的配置问题；配置正常时返回 None。"""
     settings = model_settings()
     if not settings["api_key"] or settings["api_key"].startswith("sk-your"):
-        return ("未检测到百炼 API Key。请把 `.env.example` 复制为 `.env`，"
-                "并在 `DASHSCOPE_API_KEY` 填入自己的 Key；没有 Key 时可用"
-                "“离线演示”模式查看预置结果。")
+        return ("未检测到模型 API Key。请把 `.env.example` 复制为 `.env`，"
+                "并在 `DASHSCOPE_API_KEY` 或 `OPENAI_API_KEY` 填入自己的 Key；"
+                "没有 Key 时可用“离线演示”模式查看预置结果。")
     if not DEFAULT_DB.exists():
         return "数据库不存在，请先在仓库根目录运行 `python -m data.seed`"
     return None
 
 
 def build_model():
-    """百炼的 OpenAI 兼容接口；换模型只改 `.env` 里的 MODEL_NAME。"""
+    """OpenAI 兼容接口；换平台或模型只改 `.env` 里的 BASE_URL 与 MODEL_NAME。"""
     from langchain_openai import ChatOpenAI
 
     settings = model_settings()
@@ -107,7 +107,7 @@ def build_model():
         timeout=90,
         max_retries=1,
     )
-    # 百炼部分推理模型默认开启“思考”，会把工具调用的参数写进思维链导致调用为空，
+    # 部分推理模型默认开启“思考”，会把工具调用的参数写进思维链导致调用为空，
     # 这里按需关闭；模型不支持该参数时自动降级。
     if os.getenv("MODEL_DISABLE_THINKING", "1") != "0":
         kwargs["extra_body"] = {"enable_thinking": False}
@@ -453,6 +453,7 @@ class Step:
     result: Any = None
     ok: bool = True
     note: str = ""
+    call_id: str = ""
 
     def summary(self, width: int = 80) -> str:
         text = self.result
@@ -630,17 +631,18 @@ class VolunteerAgent:
                 elif kind in {"AIMessage", "AIMessageChunk"}:
                     for call in getattr(message, "tool_calls", []) or []:
                         result.steps.append(Step(name=call.get("name", "?"),
-                                                 args=_tool_args(call.get("args"))))
+                                                 args=_tool_args(call.get("args")),
+                                                 call_id=call.get("id") or ""))
 
     @staticmethod
     def _match_step(message: Any, steps: list[Step]) -> Step:
         call_id = getattr(message, "tool_call_id", None)
-        for step in reversed(steps):
-            if call_id and step.args.get("__call_id") == call_id:
-                return step
+        if call_id:
+            for step in reversed(steps):
+                if step.call_id == call_id:
+                    return step
         for step in reversed(steps):
             if step.result is None:
-                step.args.pop("__call_id", None)
                 return step
         step = Step(name=getattr(message, "name", "tool"), note="未匹配到调用参数")
         steps.append(step)
@@ -661,7 +663,7 @@ class VolunteerAgent:
             return str(exc)
         errors = _model_errors()
         if isinstance(exc, errors):
-            return (f"模型调用失败（{type(exc).__name__}）。请检查网络、百炼额度与 "
+            return (f"模型调用失败（{type(exc).__name__}）。请检查网络、模型服务额度与 "
                     f"`.env` 中的模型名；也可以切到“离线演示”模式。")
         return f"执行出错（{type(exc).__name__}）：{exc}"
 

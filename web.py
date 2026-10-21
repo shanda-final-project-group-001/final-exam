@@ -135,10 +135,10 @@ def sidebar() -> dict[str, object]:
         st.markdown("**运行模式**")
         mode = st.radio(
             "运行模式",
-            ["在线（百炼模型）", "离线演示（预置流程）"],
+            ["在线（模型服务）", "离线演示（预置流程）"],
             index=0 if not config_problem() else 1,
             label_visibility="collapsed",
-            help="在线模式需要 .env 中的百炼 Key；离线模式不调用模型，直接用同一批工具跑预置流程。",
+            help="在线模式需要 .env 中的模型 API Key（百炼、火山方舟等均可）；离线模式不调用模型，直接用同一批工具跑预置流程。",
         )
 
         problem = config_problem()

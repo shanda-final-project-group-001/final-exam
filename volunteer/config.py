@@ -22,13 +22,19 @@ def load_env() -> None:
     load_dotenv(ROOT / ".env")
 
 
+def _resolve(raw: str, default: Path) -> Path:
+    """环境变量里的相对路径按仓库根目录解析，避免受启动目录影响。"""
+    path = Path(raw) if raw else default
+    return path if path.is_absolute() else ROOT / path
+
+
 def db_path() -> Path:
     load_env()
-    return Path(os.getenv("VOLUNTEER_DB", str(DEFAULT_DB)))
+    return _resolve(os.getenv("VOLUNTEER_DB", ""), DEFAULT_DB)
 
 
 def workspace_dir() -> Path:
     load_env()
-    path = Path(os.getenv("WORKSPACE_DIR", str(DEFAULT_WORKSPACE)))
+    path = _resolve(os.getenv("WORKSPACE_DIR", ""), DEFAULT_WORKSPACE)
     path.mkdir(parents=True, exist_ok=True)
     return path

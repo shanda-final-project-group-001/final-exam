@@ -60,7 +60,7 @@ flowchart LR
 
 | 层次 | 选型 | 负责人 |
 |---|---|---|
-| 模型 | 阿里百炼 Qwen，OpenAI 兼容接口 | 林至言 |
+| 模型 | OpenAI 兼容服务：百炼 Qwen / 火山方舟 DeepSeek，按 `.env` 切换 | 林至言 |
 | Agent 框架 | LangChain Deep Agents（含 Skills / Memory / 子代理） | 林至言 |
 | 界面 | Streamlit（流式对话 + 执行过程面板 + 会话历史） | 林至言 |
 | 工具与 MCP | Python 标准库 + MCP Python SDK（`mcp>=2.0.0`） | 朱煜杰 |
@@ -304,14 +304,14 @@ docker run --rm -p 8501:8501 volunteer-agent
 
 | 检查 | 命令 | 当前结果 |
 |---|---|---|
-| 工具与 MCP 单元测试 | `python -m unittest discover -s tests -v` | 28 项通过 |
+| 工具与 MCP 单元测试 | `python -m unittest discover -s tests -v` | 30 项通过 |
 | 演示数据完整性 | `python -m scripts.check_data` | 11 项全部 PASS |
 | MCP stdio 联调 | `python -m scripts.mcp_smoke` | 通过（工具清单、调用结果、只读边界） |
 | 命令行业务闭环 | `python -m volunteer.cli demo` | 六步全部成功 |
 | Agent 构造自检 | `python -m scripts.check_agent` | 14 项全部 PASS |
 | 界面冒烟 | `python -m scripts.smoke_ui` | 6 项全部 PASS |
 
-用例细节见 [docs/test-plan.md](docs/test-plan.md)。TC-19～TC-24（Agent 层）需要在真实 Key 下执行并回填结果。
+用例细节见 [docs/test-plan.md](docs/test-plan.md)。TC-19～TC-24（Agent 层）已用火山方舟 `deepseek-v4.1-flash` 实测通过，记录见该文档第 6 节。
 
 ## 13. 当前进度
 
@@ -330,7 +330,7 @@ docker run --rm -p 8501:8501 volunteer-agent
 | HTML 幻灯片 | 初稿完成，待补真实截图 | 共同 |
 | 演示脚本与录屏分镜 | 已完成 | 朱煜杰 |
 | 容器化部署（可选） | 文件已提供，待本机验证构建 | 朱煜杰 |
-| Agent 联调记录（TC-19～24） | 待真实 Key | 共同 |
+| Agent 联调记录（TC-19～24） | 已完成 | 共同 |
 | 备份录屏（≤3 分钟） | 未开始 | 朱煜杰 |
 
 **路径 A 最低配置**：7 项均已具备（模型接入、Deep Agents、工具/MCP、Skills、界面、会话保存、产出物）。
@@ -367,7 +367,7 @@ docker run --rm -p 8501:8501 volunteer-agent
 - 名额并发为单机 SQLite 事务级保证，未做多实例锁
 - 活动数据为静态样例，未接入真实教务或志愿系统
 - 离线演示是预置流程，用于兜底，不代表模型实时规划能力
-- Agent 层 TC-19～24 尚未在真实 Key 下回填结果
+- 模型服务可在 `.env` 切换，切换非百炼平台时需把 `MODEL_DISABLE_THINKING` 置 0
 - `mcp` 2.x 与 1.x 的 API 不同（本项目按 2.x 编写），环境需统一版本
 
 ## 17. 文档索引
