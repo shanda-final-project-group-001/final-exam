@@ -401,13 +401,12 @@ def build_agent(student_id: str = "S001", checkpointer: Any = None,
             "system_prompt": critic_instructions(),
         })
 
-    # 权限：默认就只能在 workspace 下读写；`skills/` 与 AGENTS.md 只读，
-    # `.env` / `.venv` / 数据库显式拒绝，避免模型读到密钥或改业务数据。
+    # 权限：业务产出只能写 workspace；AGENTS.md 单独放开写权限，用于积累长期偏好；
+    # skills/ 只读；`.env` / `.venv` / 数据库显式拒绝，避免模型读到密钥或改业务数据。
     permissions = [
-        FilesystemPermission(operations=["read"], paths=["/workspace/**"], mode="allow"),
-        FilesystemPermission(operations=["write"], paths=["/workspace/**"], mode="allow"),
-        FilesystemPermission(operations=["read"], paths=["/volunteer/skills/**", "/AGENTS.md"],
-                             mode="allow"),
+        FilesystemPermission(operations=["read", "write"], paths=["/workspace/**"], mode="allow"),
+        FilesystemPermission(operations=["read", "write"], paths=["/AGENTS.md"], mode="allow"),
+        FilesystemPermission(operations=["read"], paths=["/volunteer/skills/**"], mode="allow"),
         FilesystemPermission(operations=["read", "write"],
                              paths=["/.env", "/.env.*", "/.venv/**", "/data/**"],
                              mode="deny"),

@@ -18,6 +18,7 @@
 ## 工作约定
 
 - 写操作（报名、取消）必须先经人工确认；未确认不调用写工具。
-- 产出文件只写 `workspace/`；周报用 `volunteer-weekly-report` Skill 的模板。
+- 业务产出文件只写 `workspace/`；`AGENTS.md` 只用于追加稳定偏好，不放业务数据。
+- 周报用 `volunteer-weekly-report` Skill 的模板。
 - 涉及志愿时长认定规则时，提示“以学校官方最新文件为准”。
 - 工具返回 `error` 时如实转述 `code` 与中文 `message`，不编造替代结果。

@@ -167,9 +167,9 @@ python -m volunteer.agent --offline          # 不需要 Key，跑预置流程�
 | 系统提示 | `volunteer/agent.py` 的 `SYSTEM_PROMPT` | 角色、工具边界、回答风格；每轮拼上学生档案 |
 | Skills | `volunteer/skills/**` | 由 Skills 中间件发现并写入提示词，需要时才 `read_file` 读取 |
 | 子代理 critic | `critic_instructions()` | 写完周报后核对数字与格式（固定输出“结论 / 问题”两行） |
-| 长期记忆 | `AGENTS.md` | Memory 中间件自动注入；只放偏好，不放个人信息 |
+| 长期记忆 | `AGENTS.md` | Memory 中间件自动注入；可写，用于追加稳定偏好（只放偏好，不放个人信息） |
 | 人工确认 | `enroll_activity` / `cancel_enrollment` | 工具内部 `interrupt`，界面点“确认执行”才继续 |
-| 文件权限 | `build_agent()` 的 `permissions` | 只写 `/workspace/**`；`.env`、`.venv`、`data/` 禁读写 |
+| 文件权限 | `build_agent()` 的 `permissions` | 业务产出只写 `/workspace/**`；`AGENTS.md` 可读写；`.env`、`.venv`、`data/` 禁读写 |
 | 会话 | `data/agent_state.db` + `data/volunteer_sessions.db` | 检查点续聊 + 聊天记录切历史 |
 
 两个 Skill 的差别（答辩常问）：
@@ -351,8 +351,11 @@ docker run --rm -p 8501:8501 volunteer-agent
 - 确定性数据层：名额实时计算、报名事务、冲突检测、幂等取消
 - 4 个自定义工具 + `write_file`，产出写入 `workspace/` 并限制目录
 - 两个自写 Skill；报名 / 取消走 `interrupt` 人工确认
-- 文件权限拒绝 `.env`、`.venv`、`data/`；会话双库设计
-- 离线演示：无 Key 环境也能用同一批工具跑通并写出周报
+- 文件权限：业务产出只能写 `workspace/`；`AGENTS.md` 可写（长期偏好）；拒绝 `.env`、`.venv`、`data/`
+- 会话双库设计；离线演示：无 Key 环境也能用同一批工具跑通并写出周报
+
+> 演示中若让智能体“记住”偏好，`AGENTS.md` 会被修改。演示结束后执行
+> `git checkout -- AGENTS.md` 恢复基线，避免提交演示时产生的临时偏好。
 
 ## 15. 合规与隐私
 
