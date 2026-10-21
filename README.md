@@ -27,11 +27,16 @@ final-exam/
 │  ├─ config.py           # 路径与环境变量
 │  ├─ db.py               # SQLite 连接与统一错误结构
 │  ├─ tools_business.py   # 7 个业务工具（3 读 + 3 写 + 1 导出）
+│  ├─ cli.py              # 独立命令行工具（不依赖大模型）
 │  └─ mcp_server.py       # MCP 服务器 volunteer-data（3 个只读工具）
-├─ scripts/smoke_tools.py # 工具冒烟脚本
+├─ scripts/
+│  ├─ smoke_tools.py      # 工具冒烟脚本
+│  └─ check_data.py       # 演示数据完整性检查
 ├─ tests/test_tools.py    # 工具层单元测试
 ├─ workspace/             # 运行产出（不提交）
-├─ docs/team-plan.md      # 分工与协作方案
+├─ docs/
+│  ├─ team-plan.md        # 分工与协作方案
+│  └─ test-plan.md        # 测试用例表
 └─ presentation/          # HTML 汇报幻灯片
 ```
 
@@ -56,7 +61,13 @@ python -m data.seed
 # 4. 冒烟：逐个调用工具并打印 JSON
 python -m scripts.smoke_tools
 
-# 5. 运行工具层测试
+# 5. 数据完整性检查（汇报前自检）
+python -m scripts.check_data
+
+# 6. 命令行走完整业务闭环（临时数据库，不污染演示数据）
+python -m volunteer.cli demo
+
+# 7. 运行工具层测试
 python -m unittest discover -s tests -v
 ```
 
@@ -81,6 +92,25 @@ python -m volunteer.mcp_server
 ```
 
 > 注意：MCP 使用 stdio 传输，服务器不会向 stdout 打印日志；调试信息请写 stderr。
+
+## 命令行工具（不依赖大模型）
+
+`volunteer/cli.py` 把同一套业务能力做成可独立使用的命令行，用于路径 B 的“普通功能”验证，也是模型或网络异常时的演示兜底。
+
+```powershell
+python -m volunteer.cli search --weekday 周三 --limit 3
+python -m volunteer.cli detail A001
+python -m volunteer.cli hours S001
+python -m volunteer.cli conflict S001 A004
+python -m volunteer.cli enroll S001 A001          # 交互确认
+python -m volunteer.cli enroll S001 A001 --yes    # 跳过确认
+python -m volunteer.cli cancel E1001 --yes
+python -m volunteer.cli export S001 --out hours.csv
+python -m volunteer.cli --json hours S001         # 输出原始 JSON
+python -m volunteer.cli demo                      # 临时库跑完整六步闭环
+```
+
+危险操作默认要求确认；非交互环境必须显式加 `--yes`。
 
 ## 工具清单
 
@@ -107,7 +137,7 @@ python -m volunteer.mcp_server
 全部为虚构数据，不使用真实学号、手机号与成绩。
 
 - 20 名学生：`S001` ~ `S020`，其中 `S001 陈晓雨` 为演示主账号
-- 30 条活动：`A001` ~ `A030`，25 条开放、5 条已结束
+- 30 条活动：`A001` ~ `A030`，24 条开放、6 条已结束
 - 40 条报名记录、6 条时长记录（`S001` 累计 18.5 小时）
 - `A005` 名额为 2 且已满，用于演示“满员”失败提示
 - `S001` 周三 18:00–19:40 有“数据结构”课，用于演示“时间冲突”
