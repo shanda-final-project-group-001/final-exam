@@ -31,8 +31,11 @@ final-exam/
 │  └─ mcp_server.py       # MCP 服务器 volunteer-data（3 个只读工具）
 ├─ scripts/
 │  ├─ smoke_tools.py      # 工具冒烟脚本
-│  └─ check_data.py       # 演示数据完整性检查
-├─ tests/test_tools.py    # 工具层单元测试
+│  ├─ check_data.py       # 演示数据完整性检查
+│  └─ mcp_smoke.py        # MCP stdio 联调（真实拉起服务器）
+├─ tests/
+│  ├─ test_tools.py       # 工具层单元测试
+│  └─ test_mcp_server.py  # MCP 服务器测试
 ├─ workspace/             # 运行产出（不提交）
 ├─ docs/
 │  ├─ team-plan.md        # 分工与协作方案
@@ -67,7 +70,10 @@ python -m scripts.check_data
 # 6. 命令行走完整业务闭环（临时数据库，不污染演示数据）
 python -m volunteer.cli demo
 
-# 7. 运行工具层测试
+# 7. MCP 联调：真实启动 stdio 服务器并调用 3 个工具
+python -m scripts.mcp_smoke
+
+# 8. 运行全部单元测试（工具层 + MCP）
 python -m unittest discover -s tests -v
 ```
 
