@@ -42,7 +42,7 @@ flowchart LR
     A --> SK[Skills<br/>匹配规则 / 周报模板]
     A --> T[自定义工具<br/>校验 / 报名 / 取消 / 导出]
     A --> M[MCP 服务器<br/>volunteer-data]
-    A -.-> LLM[百炼 Qwen<br/>OpenAI 兼容]
+    A -.-> LLM[OpenAI 兼容模型<br/>百炼 / 火山方舟]
     T --> DB[(SQLite<br/>虚构数据)]
     M --> DB
     A --> W[(workspace<br/>周报 / CSV)]
@@ -196,7 +196,7 @@ python -m venv .venv
 # 2. 安装依赖
 python -m pip install -r requirements.txt
 
-# 3. 配置模型（复制后填入自己的百炼 Key）
+# 3. 配置模型（复制后填入自己的模型 API Key）
 Copy-Item .env.example .env
 notepad .env
 
@@ -286,11 +286,11 @@ docker run --rm -p 8501:8501 volunteer-agent
 
 ## 11. 配置
 
-复制 `.env.example` 为 `.env`，填入自己的百炼 Key。`.env` 已被 `.gitignore` 排除，**不要提交**。
+复制 `.env.example` 为 `.env`，填入自己的模型 API Key。`.env` 已被 `.gitignore` 排除，**不要提交**。
 
 | 变量 | 必填 | 说明 |
 |---|---|---|
-| `DASHSCOPE_API_KEY` | 是 | 百炼 Key（`sk-...`）；也接受 `OPENAI_API_KEY` |
+| `DASHSCOPE_API_KEY` | 是 | 模型服务 Key（百炼 `sk-`、火山方舟 `ark-` 等）；也接受 `OPENAI_API_KEY` |
 | `OPENAI_BASE_URL` | 否 | 默认 `https://dashscope.aliyuncs.com/compatible-mode/v1` |
 | `MODEL_NAME` | 否 | 默认 `qwen3.7-plus`；换模型只改这一行 |
 | `MODEL_TEMPERATURE` | 否 | 默认 `0.2`，演示时保持低温度更稳定 |
@@ -327,7 +327,7 @@ docker run --rm -p 8501:8501 volunteer-agent
 | Streamlit 界面与会话保存 | 已完成 | 林至言 |
 | 离线演示模式 | 已完成 | 林至言 |
 | 周报 Markdown 与 CSV | 已完成 | 共同 |
-| HTML 幻灯片 | 初稿完成，待补真实截图 | 共同 |
+| HTML 幻灯片 | 已完成（11 页，含架构图与演示步骤，无占位图） | 共同 |
 | 演示脚本与录屏分镜 | 已完成 | 朱煜杰 |
 | 容器化部署（可选） | 文件已提供，待本机验证构建 | 朱煜杰 |
 | Agent 联调记录（TC-19～24） | 已完成 | 共同 |
