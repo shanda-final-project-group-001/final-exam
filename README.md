@@ -95,13 +95,18 @@ final-exam/
 │  └─ smoke_ui.py            # 界面冒烟
 ├─ tests/
 │  ├─ test_tools.py          # 工具层单元测试
-│  └─ test_mcp_server.py     # MCP 服务器测试
+│  ├─ test_mcp_server.py     # MCP 服务器测试
+│  ├─ test_agent_steps.py    # 工具轨迹配对回归
+│  └─ test_cli.py            # 命令行确认与取消展示回归
 ├─ workspace/                # 运行产出（不提交）
 ├─ web.py                    # Streamlit 界面入口
 ├─ AGENTS.md                 # 长期记忆（只存偏好，不存个人信息）
 ├─ docs/
 │  ├─ team-plan.md           # 分工与协作方案
-│  └─ test-plan.md           # 测试用例表
+│  ├─ test-plan.md           # 测试用例表与执行记录
+│  ├─ demo-script.md         # 演示流程、录屏分镜、讲稿计时
+│  ├─ recording-guide.md     # 录屏操作卡与逐字旁白
+│  └─ submission-checklist.md # 提交清单核对
 └─ presentation/             # HTML 汇报幻灯片
 ```
 
@@ -282,7 +287,9 @@ docker run --rm -p 8501:8501 volunteer-agent
 
 打开 `http://localhost:8501`。在线模式仍需通过 `--env-file .env`（compose 已自动读取）提供百炼 Key；没有 Key 时用界面左侧的离线演示。
 
-> 该路径在开发机上未完成构建验证（本机 Docker 守护进程未启动），现场演示请以本地 `streamlit run web.py` 为准。
+> 该路径**未做构建验证**：开发机与核对机均未安装 Docker（`docker` 命令不存在），只能对 Dockerfile 做静态检查。
+> 已做的调整是把 `data.seed` 从构建阶段移到容器启动命令里，这样“每次启动重建演示数据”的说法才成立。
+> 现场演示以本地 `streamlit run web.py` 为准，容器化不作为交付依赖。
 
 ## 11. 配置
 
@@ -304,7 +311,7 @@ docker run --rm -p 8501:8501 volunteer-agent
 
 | 检查 | 命令 | 当前结果 |
 |---|---|---|
-| 工具与 MCP 单元测试 | `python -m unittest discover -s tests -v` | 30 项通过 |
+| 工具、MCP 与 CLI 单元测试 | `python -m unittest discover -s tests -v` | 35 项通过 |
 | 演示数据完整性 | `python -m scripts.check_data` | 11 项全部 PASS |
 | MCP stdio 联调 | `python -m scripts.mcp_smoke` | 通过（工具清单、调用结果、只读边界） |
 | 命令行业务闭环 | `python -m volunteer.cli demo` | 六步全部成功 |
@@ -312,6 +319,9 @@ docker run --rm -p 8501:8501 volunteer-agent
 | 界面冒烟 | `python -m scripts.smoke_ui` | 6 项全部 PASS |
 
 用例细节见 [docs/test-plan.md](docs/test-plan.md)。TC-19～TC-24（Agent 层）已用火山方舟 `deepseek-v4.1-flash` 实测通过，记录见该文档第 6 节。
+
+2026-10-22 在干净虚拟环境（Python 3.13 + `requirements.txt`）上完整复跑过一次：30 项单元测试扩展到 35 项，
+并修掉两处会向用户抛英文堆栈的缺陷（非交互确认的 `EOFError`、重复取消的 `KeyError`），详见 test-plan 第 6 节。
 
 ## 13. 当前进度
 
@@ -328,10 +338,12 @@ docker run --rm -p 8501:8501 volunteer-agent
 | 离线演示模式 | 已完成 | 林至言 |
 | 周报 Markdown 与 CSV | 已完成 | 共同 |
 | HTML 幻灯片 | 已完成（11 页，含架构图与演示步骤，无占位图） | 共同 |
-| 演示脚本与录屏分镜 | 已完成 | 朱煜杰 |
-| 容器化部署（可选） | 文件已提供，待本机验证构建 | 朱煜杰 |
+| 演示脚本与录屏分镜 | 已完成（含逐字旁白与讲稿计时） | 朱煜杰 |
+| 干净环境复跑（10-22） | 已完成：35 项单元测试、TC-01～TC-15、3 轮端到端演练、界面启动 | 林至言 |
+| 提交清单核对 | 已完成，见 [docs/submission-checklist.md](docs/submission-checklist.md) | 林至言 |
+| 容器化部署（可选） | 文件已提供；seed 已移到启动阶段，但本机未安装 Docker，**未做构建验证** | 朱煜杰 |
 | Agent 联调记录（TC-19～24） | 已完成 | 共同 |
-| 备份录屏（≤3 分钟） | 未开始 | 朱煜杰 |
+| 备份录屏（≤3 分钟） | **未完成**：操作卡与逐字旁白已就绪，待人工录制 | 朱煜杰 |
 
 **路径 A 最低配置**：7 项均已具备（模型接入、Deep Agents、工具/MCP、Skills、界面、会话保存、产出物）。
 
@@ -378,6 +390,8 @@ docker run --rm -p 8501:8501 volunteer-agent
 | 文档 | 内容 |
 |---|---|
 | [docs/team-plan.md](docs/team-plan.md) | 角色、接口契约、WBS、里程碑、汇报与 Q&A 分工 |
-| [docs/test-plan.md](docs/test-plan.md) | 18 条工具/MCP 用例、6 条 Agent 联调用例、演示前检查清单 |
-| [docs/demo-script.md](docs/demo-script.md) | 现场演示流程、3 分钟录屏分镜、故障兜底 |
-| [presentation/presentation.html](presentation/presentation.html) | 11 页汇报幻灯片（含演讲者备注） |
+| [docs/test-plan.md](docs/test-plan.md) | 18 条工具/MCP 用例、6 条 Agent 联调用例、执行记录与缺陷修复表 |
+| [docs/demo-script.md](docs/demo-script.md) | 现场演示流程、3 分钟录屏分镜、8 分钟讲稿计时 |
+| [docs/recording-guide.md](docs/recording-guide.md) | 录屏前设置、逐字旁白、录后自查 |
+| [docs/submission-checklist.md](docs/submission-checklist.md) | 提交物、安全扫描、功能核对、未完成项与答辩互认 |
+| [presentation/presentation.html](presentation/presentation.html) | 11 页汇报幻灯片（按 `N` 看备注、按 `S` 进演示者模式） |

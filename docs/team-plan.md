@@ -2,7 +2,7 @@
 
 > 项目：校园志愿活动智能助手（志愿活动匹配 + 时长周报）
 > 小组：林至言（f25011330）、朱煜杰（f25011243）
-> 版本：v0.1（2026-10-21）　状态：执行中，可按实际情况修订
+> 版本：v0.2（2026-10-22）　状态：主路径已冻结，进入汇报准备
 > 依据：`presentation/presentation.html` 的 11 页结构与《期末考查要求》
 
 ---
@@ -38,12 +38,15 @@
 | 表 | 关键字段 |
 |---|---|
 | `students` | student_id、name、grade、major、interests、available_slots |
-| `activities` | activity_id、title、category、date、start_time、end_time、location、capacity、enrolled_count、credit_hours、tags、description、organizer |
+| `activities` | activity_id、title、category、date、start_time、end_time、location、capacity、credit_hours、tags、description、organizer、status |
 | `enrollments` | enrollment_id、student_id、activity_id、status、created_at |
 | `hours` | record_id、student_id、activity_id、hours、term、status |
 | `courses` | course_id、student_id、name、weekday、start_time、end_time、weeks |
 
 数据全部虚构：20 名学生、30 条活动、40 条报名、15 条课表记录。禁止使用真实学号、手机号、成绩。
+
+> 口径说明：`activities` 表**不存** `enrolled_count`，「已报名数 / 剩余名额」由 `capacity - 已确认报名数` 实时计算，
+> 只在 `get_activity_detail` 等工具返回值里出现，避免计数漂移。契约与实现以 `data/schema.sql` 为准。
 
 ### 3.2 工具签名（v1）
 
@@ -301,20 +304,21 @@ python -m volunteer.agent --ask "根据长期记忆，我的常空时段是什�
 | 日期 | 版本 | 变更内容 | 原因 | 影响 |
 |---|---|---|---|---|
 | 2026-10-21 | v0.1 | 初版：角色、契约、WBS、里程碑、汇报分工 | 定题后需要并行开发 | 建立接口与文件边界 |
+| 2026-10-22 | v0.2 | ① 数据契约注明 `activities` 不落库 `enrolled_count`（剩余名额实时计算）；② 新增 `docs/recording-guide.md`（录屏操作卡 + 逐字旁白）、`docs/submission-checklist.md`（提交清单）、`demo-script.md` §6（讲稿计时）；③ 修复 CLI 两处缺陷：非交互确认抛 `EOFError` 堆栈、重复取消 `KeyError`，新增 `tests/test_cli.py` 5 条回归，单测 30→35；④ Dockerfile 将 `data.seed` 移到启动命令，容器化仍未构建验证（本机无 Docker） | 干净环境复跑发现文档与实现口径不一致、TC-14/TC-15 实测暴露缺陷 | 契约以 `data/schema.sql` 为准；录屏仍待人工录制 |
 
 ---
 
 ## 10. 完成定义（Definition of Done）
 
-- [ ] `README.md` 的 Windows 命令在干净环境可复现
-- [ ] 一句话触发 ≥5 次工具调用，执行过程可见
-- [ ] 报名与取消均有确认，未确认不写库
-- [ ] 周报 `.md` 与时长 `.csv` 真实写入 `workspace/`
-- [ ] 两个 Skill 各有 `SKILL.md`，周报含模板
-- [ ] 会话可保存、可继续
-- [ ] Agent 只能写 `workspace/`，读不到 `.env`
-- [ ] 四条演示话术全部跑通，含失败提示
-- [ ] 备份录屏 ≤3 分钟
-- [ ] HTML 幻灯片 8–12 页，含架构图与合规说明
-- [ ] 仓库无密钥、无真实个人信息、无 `.venv`
-- [ ] 两人都能指认并解释对方 2–3 处关键代码
+- [x] `README.md` 的 Windows 命令在干净环境可复现（2026-10-22 于 Python 3.13 + requirements.txt 全量复跑）
+- [x] 一句话触发 ≥5 次工具调用，执行过程可见（离线演示 6 步；在线 TC-19～TC-24 见 test-plan）
+- [x] 报名与取消均有确认，未确认不写库（`check_agent` 断言覆盖）
+- [x] 周报 `.md` 与时长 `.csv` 真实写入 `workspace/`
+- [x] 两个 Skill 各有 `SKILL.md`，周报含模板
+- [x] 会话可保存、可继续（`check_agent` 会话读写用例）
+- [x] Agent 只能写 `workspace/`，读不到 `.env`（`write_file` 越界返回 `INVALID_PATH`）
+- [x] 四条演示话术全部跑通，含失败提示（CLI 实跑 + 在线联调记录）
+- [ ] 备份录屏 ≤3 分钟（操作卡与旁白见 `docs/recording-guide.md`，待录制）
+- [x] HTML 幻灯片 8–12 页，含架构图与合规说明（11 页 + 演讲者备注）
+- [x] 仓库无密钥、无真实个人信息、无 `.venv`（正则扫描 0 命中，`.env` 未被追踪）
+- [ ] 两人都能指认并解释对方 2–3 处关键代码（见 `docs/submission-checklist.md` §6，汇报前互考）

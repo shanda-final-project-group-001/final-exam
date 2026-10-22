@@ -71,12 +71,12 @@ python -m scripts.check_data
 
 ## 5. 演示前检查清单
 
-- [ ] `python -m data.seed` 可重复执行，数据恢复到基线
-- [ ] `python -m scripts.check_data` 全部 PASS
-- [ ] TC-01～TC-12 逐条通过，失败提示为中文
-- [ ] `python -m volunteer.cli demo` 六步全部成功
-- [ ] MCP 客户端能看到 3 个工具
-- [ ] 录制备份视频时覆盖 TC-03、TC-07、TC-10 三条
+- [x] `python -m data.seed` 可重复执行，数据恢复到基线
+- [x] `python -m scripts.check_data` 全部 PASS
+- [x] TC-01～TC-12 逐条通过，失败提示为中文
+- [x] `python -m volunteer.cli demo` 六步全部成功
+- [x] MCP 客户端能看到 3 个工具
+- [ ] 录制备份视频时覆盖 TC-03、TC-07、TC-10 三条（分镜与逐字旁白见 [recording-guide.md](recording-guide.md)，人工录制待完成）
 
 ## 6. 结果记录
 
@@ -86,6 +86,19 @@ python -m scripts.check_data
 | 2026-10-21 | 朱煜杰 | Agent 自检 AC-01 14/14、AC-02 6/6、AC-03、AC-04 通过 | — | 通过 |
 | 2026-10-21 | 朱煜杰 | TC-19～TC-24 全部通过（火山方舟 deepseek-v4.1-flash） | — | 通过 |
 | 2026-10-21 | 朱煜杰 | TC-25 通过：`read_file` → `edit_file` 成功追加偏好，随后恢复基线 | — | 通过 |
+| 2026-10-22 | 林至言 | 单元测试 35/35；`check_data` 11/11；TC-01～TC-15 逐条实跑全部符合预期 | 发现 TC-14、TC-15 曾抛英文堆栈 | 已修复并补回归用例 |
+| 2026-10-22 | 林至言 | 端到端演练 3 轮：每轮 `seed → check_data → unittest → cli demo → agent --offline` 均成功，周报与 CSV 均生成 | — | 通过 |
+| 2026-10-22 | 林至言 | 界面可启动：`streamlit run web.py` 后 `/_stcore/health` 返回 200；`smoke_ui` 6/6 | — | 通过 |
+
+### 2026-10-22 演练中修复的两处缺陷
+
+| # | 现象 | 根因 | 修复 |
+|---|---|---|---|
+| 1 | TC-14：stdin 被重定向时仍进入 `input()`，抛 `EOFError` 英文堆栈 | `sys.stdin.isatty()` 在 Windows + Git Bash 重定向下仍可能返回 True | `cli._confirm` 兜住 `EOFError` / `KeyboardInterrupt`，统一提示“如确认执行请加 --yes” |
+| 2 | TC-15：第二次取消 `cancel` 抛 `KeyError: 'activity_id'` | 幂等分支只返回 `status/enrollment_id/note`，CLI 按正常分支取 `activity_id`、`remaining` | 工具幂等分支补齐 `activity_id` 与 `remaining`；CLI 展示用 `.get()` 兜底 |
+
+回归用例：`tests/test_cli.py`（5 项，覆盖非交互拒绝、EOF 兜底、`--yes` 跳过询问、取消结果两种字段形态）与
+`tests/test_tools.py::test_cancel_twice_is_idempotent` 新增的字段断言。修复后单元测试 30 → 35 项，全部通过。
 
 ### TC-19～TC-24 实测记录
 
