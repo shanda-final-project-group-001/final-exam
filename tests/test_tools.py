@@ -118,11 +118,15 @@ class ToolsTest(unittest.TestCase):
         self.assertEqual(cancelled["remaining"], before)
 
     def test_cancel_twice_is_idempotent(self) -> None:
+        before = tools.get_activity_detail("A001")["remaining"]
         enrolled = tools.enroll_activity("S001", "A001")
         tools.cancel_enrollment(enrolled["enrollment_id"])
         again = tools.cancel_enrollment(enrolled["enrollment_id"])
         self.assertEqual(again["status"], "cancelled")
         self.assertIn("note", again)
+        # 回归：幂等分支曾漏返回 activity_id / remaining，导致 CLI 取字段时抛 KeyError
+        self.assertEqual(again["activity_id"], "A001")
+        self.assertEqual(again["remaining"], before)
 
     def test_cancel_not_found(self) -> None:
         self.assertEqual(tools.cancel_enrollment("E9999")["error"]["code"], "NOT_FOUND")

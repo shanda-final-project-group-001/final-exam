@@ -290,9 +290,16 @@ def cancel_enrollment(enrollment_id: str) -> dict[str, Any]:
         if row is None:
             return error("NOT_FOUND", f"未找到报名记录 {enrollment_id}")
         if row["status"] == "cancelled":
+            # 幂等分支也要返回与正常分支同构的字段，避免调用方按 activity_id / remaining 取值时报错
+            activity = _activity(conn, row["activity_id"])
+            remaining = (
+                _remaining(conn, row["activity_id"], activity["capacity"]) if activity else None
+            )
             return {
                 "status": "cancelled",
                 "enrollment_id": enrollment_id,
+                "activity_id": row["activity_id"],
+                "remaining": remaining,
                 "note": "该报名此前已取消",
             }
         with conn:

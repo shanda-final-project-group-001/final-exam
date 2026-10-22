@@ -147,8 +147,10 @@ def _show_cancel(result: dict) -> bool:
         print(message)
         return False
     note = f"（{result['note']}）" if result.get("note") else ""
-    print(f"已取消：{result['enrollment_id']}{note}　活动 {result['activity_id']} "
-          f"剩余 {result['remaining']} 个名额")
+    activity = result.get("activity_id", "—")
+    remaining = result.get("remaining")
+    tail = f"剩余 {remaining} 个名额" if remaining is not None else "名额未变化"
+    print(f"已取消：{result['enrollment_id']}{note}　活动 {activity} {tail}")
     return True
 
 
@@ -169,10 +171,15 @@ def _show_export(result: dict) -> bool:
 def _confirm(prompt: str, yes: bool) -> bool:
     if yes:
         return True
-    if not sys.stdin.isatty():
+    # isatty 在某些 Windows 终端/重定向下并不可靠，因此还要兜住 EOF 与中断
+    try:
+        if not sys.stdin.isatty():
+            print("当前不是交互终端，如确认执行请加 --yes")
+            return False
+        answer = input(f"{prompt} [y/N] ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
         print("当前不是交互终端，如确认执行请加 --yes")
         return False
-    answer = input(f"{prompt} [y/N] ").strip().lower()
     return answer in {"y", "yes"}
 
 
