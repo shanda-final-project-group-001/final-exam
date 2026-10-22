@@ -18,12 +18,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# 容器内每次启动重建演示数据，保证名额、报名与周报可复现
-RUN python -m data.seed
-
+# 不把演示数据库打进镜像：每次启动时重建，保证名额、报名与周报可复现
 EXPOSE 8501
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')" || exit 1
 
-CMD ["streamlit", "run", "web.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true"]
+# 启动前先 seed，再拉起界面；seed 失败则容器直接退出，避免带着空库演示
+CMD ["sh", "-c", "python -m data.seed && exec streamlit run web.py --server.address=0.0.0.0 --server.port=8501 --server.headless=true"]
