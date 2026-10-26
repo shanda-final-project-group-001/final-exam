@@ -290,6 +290,10 @@ docker run --rm -p 8501:8501 volunteer-agent
 已在开发机完成验证：镜像构建成功（约 1.04 GB），容器状态 `healthy`，健康检查返回 `ok`；
 容器内 `check_data` 通过，离线演示 6 步工具调用正常，在线模式可调用真实模型。
 
+2026-10-26 用干净容器复验了报名确认链路：确认面板出现时库中没有 S001/A007 记录，点击“确认执行”后只新增一条 `E1041`，
+执行面板显示 `status=confirmed`；对同一活动再次提交会返回 `ALREADY_ENROLLED`（幂等提示，不会重复写库）。
+浏览器实测截图见 [presentation/screenshots/](presentation/screenshots/)。
+
 ## 11. 配置
 
 复制 `.env.example` 为 `.env`，填入自己的模型 API Key。`.env` 已被 `.gitignore` 排除，**不要提交**。
@@ -310,7 +314,7 @@ docker run --rm -p 8501:8501 volunteer-agent
 
 | 检查 | 命令 | 当前结果 |
 |---|---|---|
-| 工具、MCP 与 CLI 单元测试 | `python -m unittest discover -s tests -v` | 35 项通过 |
+| 工具、MCP 与 CLI 单元测试 | `python -m unittest discover -s tests -v` | 36 项通过 |
 | 演示数据完整性 | `python -m scripts.check_data` | 11 项全部 PASS |
 | MCP stdio 联调 | `python -m scripts.mcp_smoke` | 通过（工具清单、调用结果、只读边界） |
 | 命令行业务闭环 | `python -m volunteer.cli demo` | 六步全部成功 |
@@ -321,6 +325,9 @@ docker run --rm -p 8501:8501 volunteer-agent
 
 2026-10-22 在干净虚拟环境（Python 3.13 + `requirements.txt`）上完整复跑过一次：30 项单元测试扩展到 35 项，
 并修掉两处会向用户抛英文堆栈的缺陷（非交互确认的 `EOFError`、重复取消的 `KeyError`），详见 test-plan 第 6 节。
+
+2026-10-26 补充了确认恢复链路的两个回归点：待确认期间的新消息会被 `send()` 拦下，避免被 LangGraph 当成恢复值提前写库；
+确认后的执行轨迹会从检查点补全工具名与参数。新增 1 项单元测试后共 36 项，全部通过。
 
 ## 13. 当前进度
 
@@ -340,7 +347,8 @@ docker run --rm -p 8501:8501 volunteer-agent
 | 演示脚本与录屏分镜 | 已完成（含逐字旁白与讲稿计时） | 朱煜杰 |
 | 干净环境复跑（10-22） | 已完成：35 项单元测试、TC-01～TC-15、3 轮端到端演练、界面启动 | 林至言 |
 | 提交清单核对 | 已完成，见 [docs/submission-checklist.md](docs/submission-checklist.md) | 林至言 |
-| 容器化部署（可选） | 文件已提供；seed 已移到启动阶段，但本机未安装 Docker，**未做构建验证** | 朱煜杰 |
+| 容器化部署（可选） | 已完成构建与运行验证：镜像约 1.04 GB、容器 healthy、在线/离线链路均正常 | 朱煜杰 |
+| 浏览器界面实测（10-26） | 已完成：首页、检索、报名确认、确认成功、周报产出 5 张截图 | 林至言 |
 | Agent 联调记录（TC-19～24） | 已完成 | 共同 |
 | 备份录屏（≤3 分钟） | **未完成**：操作卡与逐字旁白已就绪，待人工录制 | 朱煜杰 |
 

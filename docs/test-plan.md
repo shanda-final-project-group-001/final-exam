@@ -54,7 +54,7 @@ python -m scripts.check_data
 |---|---|---|---|
 | TC-19 | 一句话多步 | “我是 S001，周三晚上有空，帮我找 2 个活动” | 至少调用 1 次检索工具，结果与 CLI 一致 |
 | TC-20 | 冲突拦截 | “帮我报名秋季运动会志愿保障” | 调用冲突检查，明确告知冲突课程，不直接报名 |
-| TC-21 | 报名确认 | “帮我报名社区长者手机课堂” | 界面弹出确认，确认后才调用 `enroll_activity` |
+| TC-21 | 报名确认 | “帮我报名社区长者手机课堂” | 界面弹出确认，确认后才调用 `enroll_activity`；待确认期间再发消息应被拦下，不能提前写库 |
 | TC-22 | 周报产出 | “把我这学期时长汇总成周报” | 调用时长查询与导出，`workspace/` 下出现 Markdown 与 CSV |
 | TC-23 | 模型不调用工具 | 观察执行面板 | 若模型只回复文字而无工具调用，视为失败并记录提示词问题 |
 | TC-24 | 错误透传 | “帮我报名 A999” | 模型转述 `NOT_FOUND` 的中文提示，不编造活动 |
@@ -89,6 +89,9 @@ python -m scripts.check_data
 | 2026-10-22 | 林至言 | 单元测试 35/35；`check_data` 11/11；TC-01～TC-15 逐条实跑全部符合预期 | 发现 TC-14、TC-15 曾抛英文堆栈 | 已修复并补回归用例 |
 | 2026-10-22 | 林至言 | 端到端演练 3 轮：每轮 `seed → check_data → unittest → cli demo → agent --offline` 均成功，周报与 CSV 均生成 | — | 通过 |
 | 2026-10-22 | 林至言 | 界面可启动：`streamlit run web.py` 后 `/_stcore/health` 返回 200；`smoke_ui` 6/6 | — | 通过 |
+| 2026-10-26 | 林至言 | 单元测试 36/36；`check_agent` 14/14；reseed 后 `check_data` 11/11 | — | 通过 |
+| 2026-10-26 | 林至言 | Docker 干净容器复验 TC-21：确认前 S001/A007 无记录，确认后只新增 E1041，面板显示 `status=confirmed`；再次提交返回 `ALREADY_ENROLLED`（幂等） | — | 通过 |
+| 2026-10-26 | 林至言 | 浏览器实测 5 个界面场景并留存截图：首页、检索、确认面板、确认成功、周报产出 | — | 通过 |
 
 ### 2026-10-22 演练中修复的两处缺陷
 
@@ -115,3 +118,14 @@ python -m scripts.check_data
 
 1. 并行工具调用的结果按返回顺序错配（执行面板会显示错误的参数与结果）。已改为按 `call_id` 配对，并补充回归测试 `tests/test_agent_steps.py`。
 2. `.env` 中 `WORKSPACE_DIR=workspace` 是相对路径，导致 `check_agent` 在 `relative_to` 处报错。已在 `config.py` 统一按仓库根目录解析相对路径。
+
+### 2026-10-26 确认恢复链路修复
+
+| # | 现象 | 根因 | 修复 |
+|---|---|---|---|
+| 1 | 待确认时再发一条新消息，写操作可能在点击确认前执行 | `agent.invoke()` 会把新消息当作 `interrupt` 的恢复值，直接继续执行工具 | `send()` 先检查 `pending`，有待确认操作时只提示“请先确认或取消”，不进入模型 |
+| 2 | 确认后执行面板显示 `enroll_activity {}`，参数像丢了 | 恢复执行只流式返回 `ToolMessage`，原 `AIMessage` 的工具调用不在本次 chunk 里 | `_backfill_tool_args()` 从检查点历史按 `call_id` 补回工具名与参数，并标注“确认后继续执行” |
+
+回归用例：`tests/test_agent_steps.py::test_resume_recovers_tool_args_from_state`；单元测试由 35 项增至 36 项，全部通过。
+另需区分：同一数据库里对已报名活动再次提交，返回 `ALREADY_ENROLLED` 是幂等提示，不是确认流程失败；
+干净容器中首次确认应看到 `status=confirmed` 与新的报名编号。
