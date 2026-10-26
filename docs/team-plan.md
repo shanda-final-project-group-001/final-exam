@@ -266,10 +266,12 @@ export_hours_csv(student_id, term, out_path="workspace/hours.csv")
    但业务产出仍被限制在 `workspace/`。
 2. 先看事实：`AGENTS.md` 的「用户偏好」只有 4 条（校内优先、周末优先、先结论后理由、
    冲突只讲事实），**没有常空时段**。
-3. 当场提问：
+   > 区分：学生画像（专业、兴趣、常空时段）来自 `students` 表，由系统提示每轮注入，
+   > 与 `AGENTS.md` 长期记忆是两回事。老师问“常空时段哪来的”，回答是画像表。
+3. 当场提问（限定只依据记忆文件）：
 
 ```powershell
-python -m volunteer.agent --ask "根据长期记忆，我的常空时段是什么？如果文件里没有记录就直接说没有。"
+python -m volunteer.agent --ask "只依据长期记忆文件 AGENTS.md，里面是否记录了我的常空时段？没有就直说没有。"
 ```
 
    实际回答是「`/AGENTS.md` 里没有记录常空时段」，并逐条列出文件中真实存在的 4 条偏好；

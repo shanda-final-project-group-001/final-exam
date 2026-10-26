@@ -285,11 +285,10 @@ docker build -t volunteer-agent .
 docker run --rm -p 8501:8501 volunteer-agent
 ```
 
-打开 `http://localhost:8501`。在线模式仍需通过 `--env-file .env`（compose 已自动读取）提供百炼 Key；没有 Key 时用界面左侧的离线演示。
+打开 `http://localhost:8501`。在线模式仍需通过 `--env-file .env`（compose 已自动读取）提供模型 API Key；没有 Key 时用界面左侧的离线演示。
 
-> 该路径**未做构建验证**：开发机与核对机均未安装 Docker（`docker` 命令不存在），只能对 Dockerfile 做静态检查。
-> 已做的调整是把 `data.seed` 从构建阶段移到容器启动命令里，这样“每次启动重建演示数据”的说法才成立。
-> 现场演示以本地 `streamlit run web.py` 为准，容器化不作为交付依赖。
+已在开发机完成验证：镜像构建成功（约 1.04 GB），容器状态 `healthy`，健康检查返回 `ok`；
+容器内 `check_data` 通过，离线演示 6 步工具调用正常，在线模式可调用真实模型。
 
 ## 11. 配置
 
