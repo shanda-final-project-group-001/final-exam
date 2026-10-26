@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import unittest
 
+from types import SimpleNamespace
 from langchain_core.messages import AIMessage, ToolMessage
 
 from volunteer.agent import RunResult, VolunteerAgent
@@ -48,6 +49,28 @@ class StepPairingTest(unittest.TestCase):
 
         self.assertEqual(self.result.steps[0].name, "get_volunteer_hours")
         self.assertEqual(self.result.steps[0].result, '{"total_hours": 18.5}')
+
+    def test_resume_recovers_tool_args_from_state(self) -> None:
+        """确认恢复后只返回 ToolMessage，应从历史消息补回工具名与参数。"""
+        self.agent._absorb({"tools": {"messages": [
+            ToolMessage(content='{"status": "confirmed"}', tool_call_id="call_e",
+                        name="enroll_activity"),
+        ]}}, self.result)
+        self.assertEqual(self.result.steps[0].args, {})
+        self.assertEqual(self.result.steps[0].note, "未匹配到调用参数")
+
+        state = SimpleNamespace(values={"messages": [AIMessage(
+            content="",
+            tool_calls=[{"name": "enroll_activity",
+                        "args": {"student_id": "S001", "activity_id": "A007"},
+                        "id": "call_e"}],
+        )]})
+        VolunteerAgent._backfill_tool_args(state, self.result)
+
+        self.assertEqual(self.result.steps[0].name, "enroll_activity")
+        self.assertEqual(self.result.steps[0].args,
+                         {"student_id": "S001", "activity_id": "A007"})
+        self.assertEqual(self.result.steps[0].note, "确认后继续执行")
 
 
 if __name__ == "__main__":

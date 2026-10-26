@@ -286,6 +286,8 @@ SYSTEM_PROMPT = """你是「志愿星」，校园志愿活动智能助手，服�
 - 写操作（enroll_activity / cancel_enrollment）会暂停等待人工确认，确认前不要告诉用户“已报名成功”。
 - export_hours_csv 与 write_file 只能写 workspace 目录。
 - 工具返回 {{"error": {{"code", "message"}}}} 时，原样转述 code 与中文 message，不要编造替代结果。
+- 写工具返回 `status=confirmed` 后，本轮不要再次调用同一工具；若返回 `ALREADY_ENROLLED`，
+  说明该活动已经报名成功，直接告知用户，不要重试或把它当成新的失败。
 
 ## 流程知识
 - 用户找活动时，先读取 `/volunteer/skills/activity-matching/SKILL.md`（read_file，limit=1000），
@@ -576,6 +578,15 @@ class VolunteerAgent:
     # -- 对话 ------------------------------------------------------------- #
     def send(self, text: str) -> RunResult:
         agent = self.ensure()
+        pending = _interrupt_payload(agent.get_state(self.config))
+        if pending:
+            # 有待确认操作时，新消息不能直接进入模型：LangGraph 会把它当成
+            # 恢复值，导致写操作在用户点确认前就被执行。
+            result = RunResult()
+            result.pending = pending
+            result.interrupted = True
+            result.text = "还有一项操作等待确认，请先点击「确认执行」或「取消操作」。"
+            return result
         return self._invoke(agent, {"messages": [{"role": "user", "content": text}]})
 
     def resume(self, approved: bool, note: str = "") -> RunResult:
@@ -603,6 +614,7 @@ class VolunteerAgent:
             return result
 
         state = agent.get_state(self.config)
+        self._backfill_tool_args(state, result)
         pending = _interrupt_payload(state)
         result.pending = pending
         result.interrupted = pending is not None
@@ -647,9 +659,28 @@ class VolunteerAgent:
         for step in reversed(steps):
             if step.result is None:
                 return step
-        step = Step(name=getattr(message, "name", "tool"), note="未匹配到调用参数")
+        step = Step(name=getattr(message, "name", "tool"),
+                    note="未匹配到调用参数", call_id=call_id or "")
         steps.append(step)
         return step
+
+    @staticmethod
+    def _backfill_tool_args(state: Any, result: RunResult) -> None:
+        """人工确认恢复后只收到 ToolMessage，用状态里的原始调用补全参数。
+
+        确认前的一次调用已经记录了工具名与参数，但恢复执行只返回结果。
+        不补全的话，界面会显示 `enroll_activity {{}}`，看起来像参数丢失。
+        """
+        calls: dict[str, tuple[str, dict[str, Any]]] = {}
+        for message in getattr(state, "values", {}).get("messages", []) or []:
+            for call in getattr(message, "tool_calls", []) or []:
+                call_id = call.get("id") or ""
+                if call_id:
+                    calls[call_id] = (call.get("name", "?"), _tool_args(call.get("args")))
+        for step in result.steps:
+            if step.args in ("", "{}", None, {}) and step.call_id in calls:
+                step.name, step.args = calls[step.call_id]
+                step.note = "确认后继续执行"
 
     @staticmethod
     def _last_ai_text(state: Any) -> str:
