@@ -48,6 +48,7 @@ STATUS_TEXT = {
     "ALREADY_ENROLLED": "已经报过名",
     "CLOSED": "报名已截止",
     "INVALID_PATH": "路径不合法",
+    "INVALID_ID": "报名编号格式不正确",
 }
 
 
@@ -202,7 +203,7 @@ def render_steps(trace: list[dict]) -> None:
     for index, step in enumerate(trace, start=1):
         marker = "" if step.get("ok", True) else "⚠️ "
         args = json.dumps(step.get("args", {}), ensure_ascii=False)
-        note = (f"<span class='vx-note'>· {step['note']}</span>" if step.get("note") else "")
+        note = (f"<span class='vx-note'>· {_escape(step['note'])}</span>" if step.get("note") else "")
         rows.append(
             f"<div class='row'><span class='vx-small'>{index:02d}</span>"
             f"<span class='vx-tag'>{_escape(step.get('name', ''))}</span>"
@@ -247,11 +248,11 @@ def render_confirm() -> None:
     pending = st.session_state.get("pending")
     if not pending:
         return
-    title = pending.get("title", "待确认操作")
+    title = _escape(pending.get("title", "待确认操作"))
     st.markdown(
         f"<div class='vx-hero' style='background:linear-gradient(120deg,#7a4a00,#a86b13)'>"
         f"<h1>⚠️ 需要你确认：{title}</h1>"
-        f"<p>{pending.get('summary','')}</p></div>",
+        f"<p>{_escape(pending.get('summary', ''))}</p></div>",
         unsafe_allow_html=True,
     )
     col_ok, col_no, _ = st.columns([1, 1, 3])

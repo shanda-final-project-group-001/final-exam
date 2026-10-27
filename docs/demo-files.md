@@ -67,7 +67,7 @@
 | `scripts/smoke_ui.py` | 界面启动自检 | ✅ |
 | `scripts/mcp_smoke.py` | 通用接口联调自检 | ✅ 可选 |
 | `scripts/smoke_tools.py` | 工具冒烟 | ✅ 可选 |
-| `tests/` | 36 项单元测试 | ✅ 可选展示 |
+| `tests/` | 41 项单元测试 | ✅ 可选展示 |
 | `Dockerfile`、`docker-compose.yml`、`.dockerignore` | 容器化兜底 | ✅ 可选，现场仍以本地启动为主 |
 
 ---
@@ -147,8 +147,8 @@ streamlit run web.py
 ## 7. 可选展示（老师追问“增量/测试/Docker”时）
 
 - `README.md` 第 14 节：相对课堂练习的增量表。
-- `docs/test-plan.md`：TC-01～TC-25、AC-01～AC-04、36 项测试记录。
-- `tests/test_tools.py`、`tests/test_agent_steps.py`、`tests/test_cli.py`、`tests/test_mcp_server.py`：单元测试。
+- `docs/test-plan.md`：TC-01～TC-25、AC-01～AC-04、41 项测试记录。
+- `tests/test_tools.py`、`tests/test_agent_steps.py`、`tests/test_cli.py`、`tests/test_mcp_server.py`、`tests/test_confirmation.py`：单元测试。
 - `volunteer/agent.py`：智能体编排、确认暂停、权限、长期记忆。
 - `volunteer/mcp_server.py`：三个只读能力的通用接口。
 - `volunteer/tools_business.py`：业务工具与事务。

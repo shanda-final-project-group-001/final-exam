@@ -92,6 +92,7 @@ python -m scripts.check_data
 | 2026-10-26 | 林至言 | 单元测试 36/36；`check_agent` 14/14；reseed 后 `check_data` 11/11 | — | 通过 |
 | 2026-10-26 | 林至言 | Docker 干净容器复验 TC-21：确认前 S001/A007 无记录，确认后只新增 E1041，面板显示 `status=confirmed`；再次提交返回 `ALREADY_ENROLLED`（幂等） | — | 通过 |
 | 2026-10-26 | 林至言 | 浏览器实测 5 个界面场景并留存截图：首页、检索、确认面板、确认成功、周报产出 | — | 通过 |
+| 2026-10-27 | 林至言 | 安全回归：单元测试 41/41（新增 5 项确认/XSS 用例）；`check_agent` 14/14；`smoke_ui` 6/6；`check_data` 11/11 | — | 通过 |
 
 ### 2026-10-22 演练中修复的两处缺陷
 
@@ -127,5 +128,14 @@ python -m scripts.check_data
 | 2 | 确认后执行面板显示 `enroll_activity {}`，参数像丢了 | 恢复执行只流式返回 `ToolMessage`，原 `AIMessage` 的工具调用不在本次 chunk 里 | `_backfill_tool_args()` 从检查点历史按 `call_id` 补回工具名与参数，并标注“确认后继续执行” |
 
 回归用例：`tests/test_agent_steps.py::test_resume_recovers_tool_args_from_state`；单元测试由 35 项增至 36 项，全部通过。
+
+### 2026-10-27 人工确认与 XSS 修复
+
+| # | 现象 | 根因 | 修复 |
+|---|---|---|---|
+| 1 | 点“取消操作”仍会报名/取消，人工确认被绕过 | `interrupt()` 恢复时返回整个 `{"approved": False}` 字典，`bool(dict)` 为 `True` | `_confirm()` 改为读取 `decision.get("approved") is True`，布尔回调仍兼容 |
+| 2 | 确认面板可被注入 HTML；恶意 `enrollment_id` 会进入确认 | `web.py` 把 `title/summary` 直接拼进 `unsafe_allow_html=True` 的 HTML；取消编号未校验 | `_escape()` 转义标题/摘要/轨迹备注；`cancel_enrollment` 先校验 `E[0-9]{4,}` |
+
+新增 `tests/test_confirmation.py` 5 项：`resume({"approved": False})` 不写库、`True` 才写、布尔兼容、非法编号在确认前拒绝、HTML 转义。单元测试由 36 项增至 41 项，全部通过。
 另需区分：同一数据库里对已报名活动再次提交，返回 `ALREADY_ENROLLED` 是幂等提示，不是确认流程失败；
 干净容器中首次确认应看到 `status=confirmed` 与新的报名编号。

@@ -314,7 +314,7 @@ docker run --rm -p 8501:8501 volunteer-agent
 
 | 检查 | 命令 | 当前结果 |
 |---|---|---|
-| 工具、MCP 与 CLI 单元测试 | `python -m unittest discover -s tests -v` | 36 项通过 |
+| 工具、MCP 与 CLI 单元测试 | `python -m unittest discover -s tests -v` | 41 项通过 |
 | 演示数据完整性 | `python -m scripts.check_data` | 11 项全部 PASS |
 | MCP stdio 联调 | `python -m scripts.mcp_smoke` | 通过（工具清单、调用结果、只读边界） |
 | 命令行业务闭环 | `python -m volunteer.cli demo` | 六步全部成功 |
@@ -327,7 +327,7 @@ docker run --rm -p 8501:8501 volunteer-agent
 并修掉两处会向用户抛英文堆栈的缺陷（非交互确认的 `EOFError`、重复取消的 `KeyError`），详见 test-plan 第 6 节。
 
 2026-10-26 补充了确认恢复链路的两个回归点：待确认期间的新消息会被 `send()` 拦下，避免被 LangGraph 当成恢复值提前写库；
-确认后的执行轨迹会从检查点补全工具名与参数。新增 1 项单元测试后共 36 项，全部通过。
+确认后的执行轨迹会从检查点补全工具名与参数。新增安全回归（取消确认不写库、确认面板转义、报名编号校验）后共 41 项，全部通过。
 
 ## 13. 当前进度
 

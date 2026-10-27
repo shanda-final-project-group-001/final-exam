@@ -255,7 +255,7 @@
 
 **Q8：相对 demo_5，你们到底加了什么？**
 
-**林至言：** 四类增量：新业务闭环（校园志愿）、新 MCP 服务器 `volunteer-data`、四个自定义工具和两个自写 Skill、报名二次确认与写权限隔离；另外还有周报/CSV 产出、双库会话、Docker 和 36 项单元测试。代码位置分别是 `volunteer/agent.py`、`volunteer/mcp_server.py`、`volunteer/tools_business.py`、`volunteer/skills/`，老师可以任选一处现场打开。
+**林至言：** 四类增量：新业务闭环（校园志愿）、新 MCP 服务器 `volunteer-data`、四个自定义工具和两个自写 Skill、报名二次确认与写权限隔离；另外还有周报/CSV 产出、双库会话、Docker 和 41 项单元测试。代码位置分别是 `volunteer/agent.py`、`volunteer/mcp_server.py`、`volunteer/tools_business.py`、`volunteer/skills/`，老师可以任选一处现场打开。
 
 **Q9：刷新页面或关掉浏览器，会话还在吗？**
 

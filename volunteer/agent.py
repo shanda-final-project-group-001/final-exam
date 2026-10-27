@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -164,11 +165,21 @@ def business_tools(confirmer: Callable[[dict[str, Any]], Any] | None = None) -> 
         ]
 
     def _confirm(payload: dict[str, Any], summary: str) -> dict[str, Any] | None:
-        """返回 None 表示继续执行；返回 dict 表示拒绝并把它当作工具结果。"""
+        """返回 None 表示继续执行；返回 dict 表示拒绝并把它当作工具结果。
+
+        LangGraph 的 interrupt() 恢复时返回的是 Command(resume=...) 的整个值，
+        这里通常是 {"approved": bool, "note": str}。不能直接 bool() 整个字典，
+        否则 {"approved": False} 也会被当成真值，导致“取消”仍然执行写操作。
+        """
         from langgraph.types import interrupt
 
-        decision = bool(confirmer(payload)) if confirmer else interrupt(payload)
-        if decision:
+        decision = confirmer(payload) if confirmer else interrupt(payload)
+        if isinstance(decision, dict):
+            approved = decision.get("approved") is True
+        else:
+            approved = bool(decision)
+
+        if approved:
             return None
         return {"status": "cancelled", "note": f"用户取消了本次操作：{summary}"}
 
@@ -203,6 +214,8 @@ def business_tools(confirmer: Callable[[dict[str, Any]], Any] | None = None) -> 
 
     def cancel_enrollment(enrollment_id: str) -> dict[str, Any]:
         """取消一条报名记录。会先暂停等待人工确认。"""
+        if not isinstance(enrollment_id, str) or not re.fullmatch(r"E[0-9]{4,}", enrollment_id):
+            return {"error": {"code": "INVALID_ID", "message": "报名编号格式不正确"}}
         blocked = _confirm(
             {
                 "action": "cancel",
