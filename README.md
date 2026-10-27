@@ -5,7 +5,7 @@
 - 选题路径：**路径 A（技术栈完整）**，业务侧按路径 B 的闭环组织
 - 小组成员：林至言（f25011330）、朱煜杰（f25011243）
 - 当前状态：数据、工具、Agent、Skills、Streamlit 界面均已完成；无 Key 时可用离线演示跑通全流程
-- 汇报材料：[presentation.html](presentation/presentation.html)；分工见 [docs/team-plan.md](docs/team-plan.md)；测试见 [docs/test-plan.md](docs/test-plan.md)
+- 汇报材料：[presentation.html](presentation/presentation.html)、[6 分钟双人逐字稿](docs/speech-script.md)（Word 版：[docs/志愿星-双人演讲稿-6min.docx](docs/志愿星-双人演讲稿-6min.docx)）；8 分钟完整版见 [docs/speech-script-8min.md](docs/speech-script-8min.md)；现场文件清单见 [docs/demo-files.md](docs/demo-files.md)；分工见 [docs/team-plan.md](docs/team-plan.md)；测试见 [docs/test-plan.md](docs/test-plan.md)
 
 ## 1. 问题与场景
 
@@ -261,11 +261,11 @@ python -m volunteer.mcp_server
 
 ```powershell
 python -m volunteer.cli search --weekday 周三 --limit 3
-python -m volunteer.cli detail A001
+python -m volunteer.cli detail A007
 python -m volunteer.cli hours S001
 python -m volunteer.cli conflict S001 A004
-python -m volunteer.cli enroll S001 A001          # 交互确认
-python -m volunteer.cli enroll S001 A001 --yes    # 跳过确认
+python -m volunteer.cli enroll S001 A007          # 交互确认
+python -m volunteer.cli enroll S001 A007 --yes    # 跳过确认
 python -m volunteer.cli cancel E1001 --yes
 python -m volunteer.cli export S001 --out hours.csv
 python -m volunteer.cli --json hours S001
@@ -345,6 +345,7 @@ docker run --rm -p 8501:8501 volunteer-agent
 | 周报 Markdown 与 CSV | 已完成 | 共同 |
 | HTML 幻灯片 | 已完成（11 页，含架构图与演示步骤，无占位图） | 共同 |
 | 演示脚本与录屏分镜 | 已完成（含逐字旁白与讲稿计时） | 朱煜杰 |
+| 双人逐字稿（6 分钟 + 问答） | 已完成，见 [docs/speech-script.md](docs/speech-script.md)；Word 版已生成；8 分钟完整版存档 | 共同 |
 | 干净环境复跑（10-22） | 已完成：35 项单元测试、TC-01～TC-15、3 轮端到端演练、界面启动 | 林至言 |
 | 提交清单核对 | 已完成，见 [docs/submission-checklist.md](docs/submission-checklist.md) | 林至言 |
 | 容器化部署（可选） | 已完成构建与运行验证：镜像约 1.04 GB、容器 healthy、在线/离线链路均正常 | 朱煜杰 |
@@ -396,9 +397,13 @@ docker run --rm -p 8501:8501 volunteer-agent
 
 | 文档 | 内容 |
 |---|---|
-| [docs/team-plan.md](docs/team-plan.md) | 角色、接口契约、WBS、里程碑、汇报与 Q&A 分工 |
+| [docs/team-plan.md](docs/team-plan.md) | 角色、接口契约、WBS、里程碑、汇报与问答分工 |
 | [docs/test-plan.md](docs/test-plan.md) | 18 条工具/MCP 用例、6 条 Agent 联调用例、执行记录与缺陷修复表 |
 | [docs/demo-script.md](docs/demo-script.md) | 现场演示流程、3 分钟录屏分镜、8 分钟讲稿计时 |
+| [docs/demo-files.md](docs/demo-files.md) | 现场演示文件清单、演示包结构、演示前检查与当前缺口 |
+| [docs/speech-script.md](docs/speech-script.md) | 6 分钟双人逐字稿、现场操作卡、故障口令、问答参考答案 |
+| [docs/志愿星-双人演讲稿-6min.docx](docs/志愿星-双人演讲稿-6min.docx) | 可直接打印的 Word 版（逐字稿 + 操作卡 + 问答附录） |
+| [docs/speech-script-8min.md](docs/speech-script-8min.md) | 8 分钟完整版逐字稿（存档，需要展开细节时使用） |
 | [docs/recording-guide.md](docs/recording-guide.md) | 录屏前设置、逐字旁白、录后自查 |
 | [docs/submission-checklist.md](docs/submission-checklist.md) | 提交物、安全扫描、功能核对、未完成项与答辩互认 |
 | [presentation/presentation.html](presentation/presentation.html) | 11 页汇报幻灯片（按 `N` 看备注、按 `S` 进演示者模式） |

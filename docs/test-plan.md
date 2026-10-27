@@ -54,7 +54,7 @@ python -m scripts.check_data
 |---|---|---|---|
 | TC-19 | 一句话多步 | “我是 S001，周三晚上有空，帮我找 2 个活动” | 至少调用 1 次检索工具，结果与 CLI 一致 |
 | TC-20 | 冲突拦截 | “帮我报名秋季运动会志愿保障” | 调用冲突检查，明确告知冲突课程，不直接报名 |
-| TC-21 | 报名确认 | “帮我报名社区长者手机课堂” | 界面弹出确认，确认后才调用 `enroll_activity`；待确认期间再发消息应被拦下，不能提前写库 |
+| TC-21 | 报名确认 | “帮我报名 [A007] 校园河道清洁；先查时间冲突，不冲突就进入报名确认” | 界面弹出确认，确认后才调用 `enroll_activity`；待确认期间再发消息应被拦下，不能提前写库 |
 | TC-22 | 周报产出 | “把我这学期时长汇总成周报” | 调用时长查询与导出，`workspace/` 下出现 Markdown 与 CSV |
 | TC-23 | 模型不调用工具 | 观察执行面板 | 若模型只回复文字而无工具调用，视为失败并记录提示词问题 |
 | TC-24 | 错误透传 | “帮我报名 A999” | 模型转述 `NOT_FOUND` 的中文提示，不编造活动 |
@@ -109,7 +109,7 @@ python -m scripts.check_data
 |---|---|---|
 | TC-19 | `search_activities(weekday=周三, limit=20)` → 返回 6 条开放活动，按匹配规则排序 | 通过 |
 | TC-20 | `get_activity_detail(A004)` → `check_schedule_conflict(A004)`，指出与“数据结构”冲突，未调用报名 | 通过 |
-| TC-21 | 两轮对话后 `enroll_activity` 暂停，`pending` 返回报名详情；`resume(True)` 后名额 10→9 | 通过 |
+| TC-21 | 两轮对话后 `enroll_activity` 暂停，`pending` 返回报名详情；`resume(True)` 后名额减 1（当轮用 A001，10→9） | 通过 |
 | TC-22 | `get_volunteer_hours` → `export_hours_csv` → `write_file` → `task(report-critic)`，产出周报与 CSV | 通过 |
 | TC-23 | 每轮均出现工具调用，执行面板有完整轨迹，无“只回复不调工具”现象 | 通过 |
 | TC-24 | `get_activity_detail(A999)` 返回 `NOT_FOUND`，模型如实转述且未编造活动 | 通过 |
