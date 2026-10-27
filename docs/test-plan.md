@@ -92,7 +92,7 @@ python -m scripts.check_data
 | 2026-10-26 | 林至言 | 单元测试 36/36；`check_agent` 14/14；reseed 后 `check_data` 11/11 | — | 通过 |
 | 2026-10-26 | 林至言 | Docker 干净容器复验 TC-21：确认前 S001/A007 无记录，确认后只新增 E1041，面板显示 `status=confirmed`；再次提交返回 `ALREADY_ENROLLED`（幂等） | — | 通过 |
 | 2026-10-26 | 林至言 | 浏览器实测 5 个界面场景并留存截图：首页、检索、确认面板、确认成功、周报产出 | — | 通过 |
-| 2026-10-27 | 林至言 | 安全回归：单元测试 41/41（新增 5 项确认/XSS 用例）；`check_agent` 14/14；`smoke_ui` 6/6；`check_data` 11/11 | — | 通过 |
+| 2026-10-27 | 林至言 | 安全回归：单元测试 44/44（新增确认/XSS、学生绑定、会话归属、口令测试）；`check_agent` 14/14；`smoke_ui` 6/6；`check_data` 11/11 | — | 通过 |
 
 ### 2026-10-22 演练中修复的两处缺陷
 
@@ -137,5 +137,15 @@ python -m scripts.check_data
 | 2 | 确认面板可被注入 HTML；恶意 `enrollment_id` 会进入确认 | `web.py` 把 `title/summary` 直接拼进 `unsafe_allow_html=True` 的 HTML；取消编号未校验 | `_escape()` 转义标题/摘要/轨迹备注；`cancel_enrollment` 先校验 `E[0-9]{4,}` |
 
 新增 `tests/test_confirmation.py` 5 项：`resume({"approved": False})` 不写库、`True` 才写、布尔兼容、非法编号在确认前拒绝、HTML 转义。单元测试由 36 项增至 41 项，全部通过。
+
+### 2026-10-27 H-01 / H-03 / H-04 修复
+
+| # | 问题 | 修复 |
+|---|---|---|
+| 1 | H-01 无认证、会话/产出全局可见 | `web.py` 增加 `VOLUNTEER_ACCESS_CODE` 演示口令闸门；`SessionStore` 的列表、读取、消息、删除、标题都按 `student_id` 过滤；当前账号由服务端会话决定 |
+| 2 | H-03 Docker 暴露 `0.0.0.0:8501` | `Dockerfile` 容器内监听 `0.0.0.0`（Docker 转发需要），`docker-compose.yml` 宿主机发布改为 `127.0.0.1:8501:8501`；README 同步 |
+| 3 | H-04 工具可操作任意学生 | `business_tools(student_id=...)` 绑定当前学生；报名、冲突、导出、时长查询校验学生；取消校验报名归属；确认摘要显示学号 |
+
+新增 `tests/test_isolation.py` 3 项：跨学生报名/时长/取消被拒绝、会话按归属过滤、访问口令常量时间比较。单元测试由 41 项增至 44 项，全部通过。
 另需区分：同一数据库里对已报名活动再次提交，返回 `ALREADY_ENROLLED` 是幂等提示，不是确认流程失败；
 干净容器中首次确认应看到 `status=confirmed` 与新的报名编号。

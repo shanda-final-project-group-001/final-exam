@@ -67,7 +67,7 @@
 | `scripts/smoke_ui.py` | 界面启动自检 | ✅ |
 | `scripts/mcp_smoke.py` | 通用接口联调自检 | ✅ 可选 |
 | `scripts/smoke_tools.py` | 工具冒烟 | ✅ 可选 |
-| `tests/` | 41 项单元测试 | ✅ 可选展示 |
+| `tests/` | 44 项单元测试 | ✅ 可选展示 |
 | `Dockerfile`、`docker-compose.yml`、`.dockerignore` | 容器化兜底 | ✅ 可选，现场仍以本地启动为主 |
 
 ---
@@ -80,6 +80,7 @@
 2. **讲稿**：Word 打印稿放桌上，或平板打开 `docs/志愿星-双人演讲稿-6min.docx`。
 3. **操作卡**：手机或平板打开 `docs/speech-script.md` 第 2 节；朱煜杰随身。
 4. **界面**：终端执行 `streamlit run web.py`，浏览器打开 `http://localhost:8501`，缩放 100%。
+   若 `.env` 设置了 `VOLUNTEER_ACCESS_CODE`，先输入演示口令再进入。
 5. **输出目录**：资源管理器提前打开 `workspace/` 和 `workspace/reports/`。
 6. **备份录屏**：放桌面，先静音试播 3 秒，确认能放。
 7. **关闭通知**：微信、QQ、邮件、系统通知全部关闭；终端滚到看不见 Key 的位置。
@@ -147,8 +148,8 @@ streamlit run web.py
 ## 7. 可选展示（老师追问“增量/测试/Docker”时）
 
 - `README.md` 第 14 节：相对课堂练习的增量表。
-- `docs/test-plan.md`：TC-01～TC-25、AC-01～AC-04、41 项测试记录。
-- `tests/test_tools.py`、`tests/test_agent_steps.py`、`tests/test_cli.py`、`tests/test_mcp_server.py`、`tests/test_confirmation.py`：单元测试。
+- `docs/test-plan.md`：TC-01～TC-25、AC-01～AC-04、44 项测试记录。
+- `tests/test_tools.py`、`tests/test_agent_steps.py`、`tests/test_cli.py`、`tests/test_mcp_server.py`、`tests/test_confirmation.py`、`tests/test_isolation.py`：单元测试。
 - `volunteer/agent.py`：智能体编排、确认暂停、权限、长期记忆。
 - `volunteer/mcp_server.py`：三个只读能力的通用接口。
 - `volunteer/tools_business.py`：业务工具与事务。

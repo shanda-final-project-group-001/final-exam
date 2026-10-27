@@ -1,5 +1,5 @@
 # 志愿星 · 校园志愿活动智能助手
-# 运行：docker compose up --build  或  docker build -t volunteer-agent . && docker run -p 8501:8501 volunteer-agent
+# 运行：docker compose up --build  或  docker build -t volunteer-agent . && docker run --rm --env-file .env -p 127.0.0.1:8501:8501 volunteer-agent
 
 FROM python:3.11-slim
 
@@ -24,5 +24,6 @@ EXPOSE 8501
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')" || exit 1
 
-# 启动前先 seed，再拉起界面；seed 失败则容器直接退出，避免带着空库演示
+# 启动前先 seed，再拉起界面；容器内监听 0.0.0.0，宿主机只发布到 127.0.0.1
+# （docker-compose.yml 与 README 的 -p 参数都限制为 127.0.0.1）
 CMD ["sh", "-c", "python -m data.seed && exec streamlit run web.py --server.address=0.0.0.0 --server.port=8501 --server.headless=true"]

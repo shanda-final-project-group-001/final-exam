@@ -14,7 +14,9 @@
 
 from __future__ import annotations
 
+import hmac
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -29,8 +31,12 @@ from volunteer.agent import (
     offline_answer,
     tool_names,
 )
-from volunteer.config import ROOT
+from volunteer.config import ROOT, load_env
 from volunteer.sessions import SessionStore
+
+DEMO_STUDENT = "S001"
+ACCESS_CODE_ENV = "VOLUNTEER_ACCESS_CODE"
+DEMO_STUDENT_ENV = "VOLUNTEER_DEMO_STUDENT"
 
 EXAMPLES = [
     ("找活动", "我周三晚上有空，帮我找 2 个适合我的志愿活动，说说推荐理由。"),
@@ -49,6 +55,7 @@ STATUS_TEXT = {
     "CLOSED": "报名已截止",
     "INVALID_PATH": "路径不合法",
     "INVALID_ID": "报名编号格式不正确",
+    "FORBIDDEN": "无权操作其他学生",
 }
 
 
@@ -92,6 +99,69 @@ def page_config() -> None:
     )
 
 
+def access_code() -> str:
+    """读取演示访问口令；未设置时返回空字符串（仅限本机演示）。"""
+    load_env()
+    return (os.getenv(ACCESS_CODE_ENV) or "").strip()
+
+
+def demo_student() -> str:
+    load_env()
+    return (os.getenv(DEMO_STUDENT_ENV) or DEMO_STUDENT).strip() or DEMO_STUDENT
+
+
+def access_code_ok(entered: str, expected: str) -> bool:
+    """常量时间比较，避免口令比较泄露时序。"""
+    return bool(expected) and hmac.compare_digest(str(entered or ""), str(expected))
+
+
+def current_user() -> str:
+    return st.session_state.get("user_id") or demo_student()
+
+
+def login_gate() -> bool:
+    """演示口令闸门。
+
+    设置了 VOLUNTEER_ACCESS_CODE 时，必须输入口令才能进入；
+    未设置时保持原来的本机演示体验，并在界面上提示“仅限本机”。
+    真正的多用户上线应换成学校 SSO / 反向代理认证。
+    """
+    if st.session_state.get("authenticated"):
+        return True
+
+    expected = access_code()
+    if not expected:
+        st.session_state.authenticated = True
+        st.session_state.user_id = demo_student()
+        if not st.session_state.get("insecure_warned"):
+            st.warning(
+                "未设置访问口令，当前为本机演示模式。若要让别人访问，"
+                "请先在 `.env` 设置 `VOLUNTEER_ACCESS_CODE`。",
+                icon="⚠️",
+            )
+            st.session_state.insecure_warned = True
+        return True
+
+    st.markdown(
+        "<div class='vx-hero'>"
+        "<h1>志愿星 · 演示登录</h1>"
+        "<p>请输入本机 `.env` 中配置的演示访问口令。</p>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    with st.form("volunteer-login"):
+        entered = st.text_input("演示口令", type="password", label_visibility="collapsed")
+        submitted = st.form_submit_button("进入", type="primary", use_container_width=True)
+    if submitted:
+        if access_code_ok(entered, expected):
+            st.session_state.authenticated = True
+            st.session_state.user_id = demo_student()
+            st.rerun()
+        else:
+            st.error("访问口令不正确", icon="🔒")
+    return False
+
+
 def store() -> SessionStore:
     if "store" not in st.session_state:
         st.session_state.store = SessionStore()
@@ -102,21 +172,24 @@ def ensure_session() -> str:
     """保证当前有一个会话；首次进入自动建一个“新对话”。"""
     st_ = st.session_state
     db = store()
-    if "thread_id" not in st_ or db.get(st_.thread_id) is None:
-        existing = db.list()
+    user = current_user()
+    if "thread_id" not in st_ or db.get(st_.thread_id, user) is None:
+        existing = db.list(user)
         if existing:
             st_.thread_id = existing[0]["thread_id"]
         else:
-            st_.thread_id = db.create("新对话")
+            st_.thread_id = db.create("新对话", student_id=user)
     return st_.thread_id
 
 
 def get_agent() -> VolunteerAgent:
     st_ = st.session_state
     thread_id = ensure_session()
-    if st_.get("agent_thread") != thread_id:
-        st_.agent = VolunteerAgent(student_id="S001", thread_id=thread_id)
+    user = current_user()
+    if st_.get("agent_thread") != thread_id or st_.get("agent_user") != user:
+        st_.agent = VolunteerAgent(student_id=user, thread_id=thread_id)
         st_.agent_thread = thread_id
+        st_.agent_user = user
         st_.pending = None
     return st_.agent
 
@@ -128,10 +201,11 @@ def get_agent() -> VolunteerAgent:
 def sidebar() -> dict[str, object]:
     db = store()
     current = ensure_session()
+    user = current_user()
 
     with st.sidebar:
         st.markdown("### 🛰️ 志愿星")
-        st.caption("校园志愿活动智能助手 · 演示账号 S001 陈晓雨")
+        st.caption(f"校园志愿活动智能助手 · 当前账号 {user}")
 
         st.markdown("**运行模式**")
         mode = st.radio(
@@ -152,12 +226,12 @@ def sidebar() -> dict[str, object]:
         st.divider()
         st.markdown("**会话历史**")
         if st.button("＋ 新建对话", use_container_width=True, type="primary"):
-            st.session_state.thread_id = db.create("新对话")
+            st.session_state.thread_id = db.create("新对话", student_id=user)
             st.session_state.pending = None
             st.session_state.pop("agent", None)
             st.rerun()
 
-        sessions = db.list()
+        sessions = db.list(user)
         if not sessions:
             st.caption("还没有对话，点上面的按钮开始。")
         for item in sessions:
@@ -172,7 +246,7 @@ def sidebar() -> dict[str, object]:
                 st.session_state.pop("agent", None)
                 st.rerun()
             if col_del.button("🗑", key=f"del-{item['thread_id']}", help="删除这条会话"):
-                db.delete(item["thread_id"])
+                db.delete(item["thread_id"], user)
                 if active:
                     st.session_state.pop("thread_id", None)
                     st.session_state.pop("agent", None)
@@ -187,6 +261,13 @@ def sidebar() -> dict[str, object]:
         with st.expander("我用到的工具", expanded=False):
             for name in tool_names():
                 st.markdown(f"- `{name}`")
+
+        st.divider()
+        if st.button("退出登录", use_container_width=True):
+            for key in ("authenticated", "user_id", "thread_id", "agent",
+                        "agent_thread", "agent_user", "pending", "last_trace"):
+                st.session_state.pop(key, None)
+            st.rerun()
 
     return {"mode": mode, "clicked": clicked}
 
@@ -268,9 +349,10 @@ def render_confirm() -> None:
 
 def save_turn(role: str, content: str, trace: list[dict] | None = None) -> None:
     db = store()
-    db.add_message(st.session_state.thread_id, role, content, trace)
+    user = current_user()
+    db.add_message(st.session_state.thread_id, role, content, trace, student_id=user)
     if role == "user":
-        db.auto_title(st.session_state.thread_id, content)
+        db.auto_title(st.session_state.thread_id, content, student_id=user)
 
 
 def run(call) -> None:
@@ -334,6 +416,8 @@ def main() -> None:
         except Exception:
             pass
     page_config()
+    if not login_gate():
+        return
     controls = sidebar()
     st.session_state.mode = controls["mode"]
 
@@ -350,7 +434,7 @@ def main() -> None:
 
     thread_id = ensure_session()
     db = store()
-    messages = db.messages(thread_id)
+    messages = db.messages(thread_id, current_user())
     agent = get_agent()
 
     # 刷新或切换会话后，把图里仍挂起的确认恢复出来

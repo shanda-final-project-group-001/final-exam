@@ -277,16 +277,33 @@ def enroll_activity(student_id: str, activity_id: str) -> dict[str, Any]:
         conn.close()
 
 
-def cancel_enrollment(enrollment_id: str) -> dict[str, Any]:
+def enrollment_owner(enrollment_id: str) -> str | None:
+    """返回报名记录所属学生；不存在时返回 None。"""
+    with open_db() as conn:
+        row = conn.execute(
+            "SELECT student_id FROM enrollments WHERE enrollment_id = ?",
+            (enrollment_id,),
+        ).fetchone()
+    return row["student_id"] if row else None
+
+
+def cancel_enrollment(
+    enrollment_id: str,
+    student_id: str | None = None,
+) -> dict[str, Any]:
     """取消一条报名记录（幂等：已取消时返回 cancelled）。
 
     Args:
         enrollment_id: 报名编号，如 "E1001"。
+        student_id: 可选；提供时只允许取消该学生自己的报名。
     """
     with open_db() as conn:
-        row = conn.execute(
-            "SELECT * FROM enrollments WHERE enrollment_id = ?", (enrollment_id,)
-        ).fetchone()
+        sql = "SELECT * FROM enrollments WHERE enrollment_id = ?"
+        params: list[Any] = [enrollment_id]
+        if student_id is not None:
+            sql += " AND student_id = ?"
+            params.append(student_id)
+        row = conn.execute(sql, params).fetchone()
         if row is None:
             return error("NOT_FOUND", f"未找到报名记录 {enrollment_id}")
         if row["status"] == "cancelled":

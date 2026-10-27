@@ -136,7 +136,8 @@ def _safe_path(name: str, base: Path) -> Path | None:
     return target if target.is_relative_to(base.resolve()) else None
 
 
-def business_tools(confirmer: Callable[[dict[str, Any]], Any] | None = None) -> list[Any]:
+def business_tools(confirmer: Callable[[dict[str, Any]], Any] | None = None,
+                   student_id: str = "S001") -> list[Any]:
     """返回 Agent 可用的 8 个业务工具（3 个经 MCP + 4 个本地 + 1 个写文件）。
 
     读工具由 `mcp_server.py` 里的同一个 `MCPServer` 实例导出：
@@ -148,8 +149,20 @@ def business_tools(confirmer: Callable[[dict[str, Any]], Any] | None = None) -> 
         confirmer: 可选的外部确认回调（形如 `confirmer(payload) -> bool`）。
             提供时写操作先调它；不提供时在 LangGraph 图里用 `interrupt` 暂停。
             保留这个参数是为了在脚本 / 测试里复用同一套确认语义。
+        student_id: 当前登录学生。工具层会强制所有读写都只针对该学生，
+            避免模型通过参数读取或操作其他学生。
     """
     from langchain_core.tools import StructuredTool
+
+    bound_student = student_id
+
+    def _forbidden(message: str = "只能操作当前登录学生") -> dict[str, Any]:
+        return {"error": {"code": "FORBIDDEN", "message": message}}
+
+    def _check_student(requested: str) -> dict[str, Any] | None:
+        if requested != bound_student:
+            return _forbidden()
+        return None
 
     try:
         from .mcp_server import tool_specs
@@ -185,6 +198,9 @@ def business_tools(confirmer: Callable[[dict[str, Any]], Any] | None = None) -> 
 
     def check_schedule_conflict(student_id: str, activity_id: str) -> dict[str, Any]:
         """检查活动是否与该学生的课表或已报名活动冲突（只读，直接返回结果）。"""
+        blocked = _check_student(student_id)
+        if blocked is not None:
+            return blocked
         return _jsonable(tools.check_schedule_conflict(student_id, activity_id))
 
     def enroll_activity(student_id: str, activity_id: str) -> dict[str, Any]:
@@ -192,6 +208,9 @@ def business_tools(confirmer: Callable[[dict[str, Any]], Any] | None = None) -> 
 
         调用前应先调用 check_schedule_conflict 并阅读 activity-matching Skill 的规则。
         """
+        blocked = _check_student(student_id)
+        if blocked is not None:
+            return blocked
         detail = tools.get_activity_detail(activity_id)
         if "error" in detail:
             return _jsonable(detail)
@@ -199,7 +218,7 @@ def business_tools(confirmer: Callable[[dict[str, Any]], Any] | None = None) -> 
             {
                 "action": "enroll",
                 "title": f"报名「{detail['title']}」",
-                "summary": (f"{detail['date']} {detail['weekday']} "
+                "summary": (f"学号 {student_id} · {detail['date']} {detail['weekday']} "
                             f"{detail['start_time']}-{detail['end_time']} · "
                             f"{detail['location']} · 认定 {detail['credit_hours']} 小时"),
                 "student_id": student_id,
@@ -216,22 +235,31 @@ def business_tools(confirmer: Callable[[dict[str, Any]], Any] | None = None) -> 
         """取消一条报名记录。会先暂停等待人工确认。"""
         if not isinstance(enrollment_id, str) or not re.fullmatch(r"E[0-9]{4,}", enrollment_id):
             return {"error": {"code": "INVALID_ID", "message": "报名编号格式不正确"}}
+        owner = tools.enrollment_owner(enrollment_id)
+        if owner is None:
+            return {"error": {"code": "NOT_FOUND", "message": f"未找到报名记录 {enrollment_id}"}}
+        if owner != bound_student:
+            return _forbidden("只能取消当前登录学生自己的报名")
         blocked = _confirm(
             {
                 "action": "cancel",
-                "title": f"取消报名 {enrollment_id}",
-                "summary": "取消后名额会释放给其他同学，再次报名需重新确认。",
+                "title": f"取消报名 {enrollment_id}（{bound_student}）",
+                "summary": f"学号 {bound_student} · 取消后名额会释放给其他同学，再次报名需重新确认。",
                 "enrollment_id": enrollment_id,
+                "student_id": bound_student,
             },
             "取消报名",
         )
         if blocked is not None:
             return blocked
-        return _jsonable(tools.cancel_enrollment(enrollment_id))
+        return _jsonable(tools.cancel_enrollment(enrollment_id, student_id=bound_student))
 
     def export_hours_csv(student_id: str, term: str = TERM_DEFAULT,
                          out_path: str = "hours.csv") -> dict[str, Any]:
         """把学生本学期志愿时长导出为 CSV，写入 workspace 目录。"""
+        blocked = _check_student(student_id)
+        if blocked is not None:
+            return blocked
         return _jsonable(tools.export_hours_csv(student_id, term, out_path))
 
     def write_file(path: str, content: str) -> dict[str, Any]:
@@ -263,11 +291,20 @@ def business_tools(confirmer: Callable[[dict[str, Any]], Any] | None = None) -> 
 
     # 读工具直接沿用 MCP 服务器注册的那一份定义（名字、描述、参数 schema、底层函数），
     # Agent 侧看到的就是 `python -m volunteer.mcp_server` 装进别的客户端时的能力集合。
-    converted_reads = [
-        StructuredTool.from_function(spec["fn"], name=spec["name"],
-                                     description=spec["description"])
-        for spec in read_specs
-    ]
+    # 时长查询额外加一层“只能查当前登录学生”的校验。
+    def _get_hours_guarded(student_id: str, term: str = TERM_DEFAULT) -> dict[str, Any]:
+        blocked = _check_student(student_id)
+        if blocked is not None:
+            return blocked
+        return _jsonable(tools.get_volunteer_hours(student_id, term))
+
+    converted_reads = []
+    for spec in read_specs:
+        fn = _get_hours_guarded if spec["name"] == "get_volunteer_hours" else spec["fn"]
+        converted_reads.append(
+            StructuredTool.from_function(fn, name=spec["name"],
+                                         description=spec["description"])
+        )
 
     return [
         *converted_reads,
@@ -434,7 +471,7 @@ def build_agent(student_id: str = "S001", checkpointer: Any = None,
 
     return create_deep_agent(
         model=model,
-        tools=business_tools() if with_tools else [],
+        tools=business_tools(student_id=student_id) if with_tools else [],
         system_prompt=build_system_prompt(student_id),
         subagents=agent_subagents,
         backend=backend,

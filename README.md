@@ -282,10 +282,11 @@ python -m volunteer.cli --json hours S001
 docker compose up --build
 # 或
 docker build -t volunteer-agent .
-docker run --rm -p 8501:8501 volunteer-agent
+docker run --rm --env-file .env -p 127.0.0.1:8501:8501 volunteer-agent
 ```
 
 打开 `http://localhost:8501`。在线模式仍需通过 `--env-file .env`（compose 已自动读取）提供模型 API Key；没有 Key 时用界面左侧的离线演示。
+若 `.env` 设置了 `VOLUNTEER_ACCESS_CODE`，界面会先要求输入演示口令。Docker 默认只绑定 `127.0.0.1`；如需局域网访问，请在前面加带认证和 TLS 的反向代理，不要直接把端口改回 `0.0.0.0`。
 
 已在开发机完成验证：镜像构建成功（约 1.04 GB），容器状态 `healthy`，健康检查返回 `ok`；
 容器内 `check_data` 通过，离线演示 6 步工具调用正常，在线模式可调用真实模型。
@@ -309,12 +310,14 @@ docker run --rm -p 8501:8501 volunteer-agent
 | `WORKSPACE_DIR` | 否 | 产出目录，默认 `workspace` |
 | `VOLUNTEER_SESSIONS_DB` | 否 | 聊天记录库，默认 `data/volunteer_sessions.db` |
 | `VOLUNTEER_STATE_DB` | 否 | 检查点库，默认 `data/agent_state.db` |
+| `VOLUNTEER_ACCESS_CODE` | 否 | 演示访问口令；设置后启动界面需先输入，留空仅适合本机单人演示 |
+| `VOLUNTEER_DEMO_STUDENT` | 否 | 当前演示学生，默认 `S001` |
 
 ## 12. 测试与自检
 
 | 检查 | 命令 | 当前结果 |
 |---|---|---|
-| 工具、MCP 与 CLI 单元测试 | `python -m unittest discover -s tests -v` | 41 项通过 |
+| 工具、MCP 与 CLI 单元测试 | `python -m unittest discover -s tests -v` | 44 项通过 |
 | 演示数据完整性 | `python -m scripts.check_data` | 11 项全部 PASS |
 | MCP stdio 联调 | `python -m scripts.mcp_smoke` | 通过（工具清单、调用结果、只读边界） |
 | 命令行业务闭环 | `python -m volunteer.cli demo` | 六步全部成功 |
@@ -327,7 +330,7 @@ docker run --rm -p 8501:8501 volunteer-agent
 并修掉两处会向用户抛英文堆栈的缺陷（非交互确认的 `EOFError`、重复取消的 `KeyError`），详见 test-plan 第 6 节。
 
 2026-10-26 补充了确认恢复链路的两个回归点：待确认期间的新消息会被 `send()` 拦下，避免被 LangGraph 当成恢复值提前写库；
-确认后的执行轨迹会从检查点补全工具名与参数。新增安全回归（取消确认不写库、确认面板转义、报名编号校验）后共 41 项，全部通过。
+确认后的执行轨迹会从检查点补全工具名与参数。新增安全回归（取消确认不写库、确认面板转义、报名编号校验、学生绑定、会话归属）后共 44 项，全部通过。
 
 ## 13. 当前进度
 

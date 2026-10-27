@@ -32,6 +32,8 @@ def main() -> int:
     os.environ["VOLUNTEER_SESSIONS_DB"] = str(sandbox / "sessions.db")
     os.environ["VOLUNTEER_STATE_DB"] = str(sandbox / "state.db")
     os.environ.setdefault("DASHSCOPE_API_KEY", "")
+    # 冒烟测试直接进入本机演示模式，不弹访问口令。
+    os.environ["VOLUNTEER_ACCESS_CODE"] = ""
 
     checks: list[tuple[str, bool, str]] = []
 

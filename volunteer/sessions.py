@@ -113,48 +113,78 @@ class SessionStore:
             )
         return tid
 
-    def list(self) -> list[dict[str, Any]]:
+    def list(self, student_id: str | None = None) -> list[dict[str, Any]]:
         with closing(_connect(self.path)) as conn:
-            rows = conn.execute(
+            sql = (
                 "SELECT s.*, (SELECT COUNT(*) FROM chat_messages m "
                 "WHERE m.thread_id = s.thread_id) AS message_count "
-                "FROM chat_sessions s ORDER BY s.updated_at DESC"
-            ).fetchall()
+                "FROM chat_sessions s "
+            )
+            params: tuple[Any, ...] = ()
+            if student_id:
+                sql += "WHERE s.student_id = ? "
+                params = (student_id,)
+            sql += "ORDER BY s.updated_at DESC"
+            rows = conn.execute(sql, params).fetchall()
         return [dict(row) for row in rows]
 
-    def get(self, thread_id: str) -> dict[str, Any] | None:
+    def get(self, thread_id: str,
+            student_id: str | None = None) -> dict[str, Any] | None:
         with closing(_connect(self.path)) as conn:
-            row = conn.execute(
-                "SELECT * FROM chat_sessions WHERE thread_id = ?", (thread_id,)
-            ).fetchone()
+            sql = "SELECT * FROM chat_sessions WHERE thread_id = ?"
+            params: list[Any] = [thread_id]
+            if student_id:
+                sql += " AND student_id = ?"
+                params.append(student_id)
+            row = conn.execute(sql, params).fetchone()
         return dict(row) if row else None
 
-    def rename(self, thread_id: str, title: str) -> None:
+    def rename(self, thread_id: str, title: str,
+               student_id: str | None = None) -> None:
         title = (title or "").strip()[:24] or "新对话"
         with closing(_connect(self.path)) as conn, conn:
-            conn.execute(
-                "UPDATE chat_sessions SET title = ?, updated_at = ? WHERE thread_id = ?",
-                (title, _now(), thread_id),
-            )
+            sql = "UPDATE chat_sessions SET title = ?, updated_at = ? WHERE thread_id = ?"
+            params: list[Any] = [title, _now(), thread_id]
+            if student_id:
+                sql += " AND student_id = ?"
+                params.append(student_id)
+            conn.execute(sql, params)
 
-    def touch(self, thread_id: str) -> None:
+    def touch(self, thread_id: str, student_id: str | None = None) -> None:
         with closing(_connect(self.path)) as conn, conn:
-            conn.execute(
-                "UPDATE chat_sessions SET updated_at = ? WHERE thread_id = ?",
-                (_now(), thread_id),
-            )
+            sql = "UPDATE chat_sessions SET updated_at = ? WHERE thread_id = ?"
+            params: list[Any] = [_now(), thread_id]
+            if student_id:
+                sql += " AND student_id = ?"
+                params.append(student_id)
+            conn.execute(sql, params)
 
-    def delete(self, thread_id: str) -> None:
+    def delete(self, thread_id: str, student_id: str | None = None) -> None:
         with closing(_connect(self.path)) as conn, conn:
+            if student_id:
+                row = conn.execute(
+                    "SELECT student_id FROM chat_sessions WHERE thread_id = ?",
+                    (thread_id,),
+                ).fetchone()
+                if row is None or row["student_id"] != student_id:
+                    return
             conn.execute("DELETE FROM chat_messages WHERE thread_id = ?", (thread_id,))
             conn.execute("DELETE FROM chat_sessions WHERE thread_id = ?", (thread_id,))
 
     # -- 消息 ------------------------------------------------------------- #
     def add_message(self, thread_id: str, role: str, content: str,
-                    trace: list[dict[str, Any]] | None = None) -> None:
+                    trace: list[dict[str, Any]] | None = None,
+                    student_id: str | None = None) -> None:
         import json
 
         with closing(_connect(self.path)) as conn, conn:
+            if student_id:
+                owner = conn.execute(
+                    "SELECT student_id FROM chat_sessions WHERE thread_id = ?",
+                    (thread_id,),
+                ).fetchone()
+                if owner is None or owner["student_id"] != student_id:
+                    raise PermissionError("会话不属于当前用户")
             conn.execute(
                 "INSERT INTO chat_messages VALUES (?, ?, ?, ?, ?, ?)",
                 (uuid.uuid4().hex, thread_id, role, content,
@@ -165,10 +195,18 @@ class SessionStore:
                 (_now(), thread_id),
             )
 
-    def messages(self, thread_id: str) -> list[dict[str, Any]]:
+    def messages(self, thread_id: str,
+                 student_id: str | None = None) -> list[dict[str, Any]]:
         import json
 
         with closing(_connect(self.path)) as conn:
+            if student_id:
+                owner = conn.execute(
+                    "SELECT student_id FROM chat_sessions WHERE thread_id = ?",
+                    (thread_id,),
+                ).fetchone()
+                if owner is None or owner["student_id"] != student_id:
+                    return []
             rows = conn.execute(
                 "SELECT role, content, trace, created_at FROM chat_messages "
                 "WHERE thread_id = ? ORDER BY created_at, rowid",
@@ -181,10 +219,11 @@ class SessionStore:
             items.append(item)
         return items
 
-    def auto_title(self, thread_id: str, first_user_message: str) -> None:
+    def auto_title(self, thread_id: str, first_user_message: str,
+                   student_id: str | None = None) -> None:
         """用第一条用户消息做标题，避免列表里全是“新对话”。"""
-        current = self.get(thread_id)
+        current = self.get(thread_id, student_id)
         if current and current["title"] not in {"新对话", ""}:
             return
         text = " ".join((first_user_message or "").split())
-        self.rename(thread_id, text[:16] + ("…" if len(text) > 16 else ""))
+        self.rename(thread_id, text[:16] + ("…" if len(text) > 16 else ""), student_id)
